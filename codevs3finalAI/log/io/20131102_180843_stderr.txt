@@ -1,8 +1,0 @@
-state: 1
-turn: 68
-state: 2
-turn: 118
-state: 3
-turn: 203
-state: 4
-turn: 260
