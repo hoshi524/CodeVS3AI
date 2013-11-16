@@ -4,11 +4,30 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Random;
+import java.util.Scanner;
 
 class AI {
+
+	public static void main(String[] args) {
+		@SuppressWarnings("resource")
+		Scanner sc = new Scanner(System.in);
+		AI ai = new AI();
+		System.out.println("hoshi524");
+		while (true) {
+			StringBuilder sb = new StringBuilder();
+			while (true) {
+				String tmp = sc.nextLine();
+				sb.append(tmp + "\n");
+				if (tmp.equals("END"))
+					break;
+			}
+			System.out.print(ai.think(sb.toString()));
+		}
+	}
+
 	static final Random random = new Random();
 	static final Operation NONE = new Operation(Move.NONE, false, 5);
-	static final int MAX_DEPTH = 1;
+	static final int MAX_DEPTH = 0;
 
 	static final ArrayList<Operation[]> operationList = new ArrayList<Operation[]>();
 
