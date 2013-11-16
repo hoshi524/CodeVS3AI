@@ -1,0 +1,16 @@
+state: 1
+turn: 47
+state: 2
+turn: 100
+state: 3
+turn: 158
+state: 4
+turn: 204
+state: 5
+turn: 274
+state: 6
+turn: 364
+state: 7
+turn: 424
+state: 8
+turn: 522

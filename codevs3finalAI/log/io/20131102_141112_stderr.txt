@@ -1,0 +1,10 @@
+state: 0
+Exception in thread "main" java.util.InputMismatchException
+	at java.util.Scanner.throwFor(Unknown Source)
+	at java.util.Scanner.next(Unknown Source)
+	at java.util.Scanner.nextInt(Unknown Source)
+	at java.util.Scanner.nextInt(Unknown Source)
+	at codevs3AI.Tutorial.input(Tutorial.java:80)
+	at codevs3AI.AI_versusTutorial.run(AI_versusTutorial.java:31)
+	at codevs3AI.Main.think(Main.java:41)
+	at codevs3AI.Main.main(Main.java:34)
