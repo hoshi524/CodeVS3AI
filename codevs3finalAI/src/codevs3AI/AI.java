@@ -3,7 +3,6 @@ package codevs3AI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Random;
 import java.util.Scanner;
 
 class AI {
@@ -25,7 +24,6 @@ class AI {
 		}
 	}
 
-	static final Random random = new Random();
 	static final Operation NONE = new Operation(Move.NONE, false, 5);
 	static final int MAX_DEPTH = 1;
 
@@ -77,7 +75,8 @@ class AI {
 	}
 
 	String think(String input) {
-		Next next = dfs(new State(input), MAX_DEPTH,Long.MIN_VALUE,Long.MAX_VALUE);
+		Next next = dfs(new State(input), MAX_DEPTH, Long.MIN_VALUE, Long.MAX_VALUE);
+		System.err.println(next.value);
 
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < Parameter.PLAYER; i++) {
@@ -88,7 +87,7 @@ class AI {
 
 	HashSet<Long> used = new HashSet<Long>();
 
-	Next dfs(State now, int depth,long a,long b) {
+	Next dfs(State now, int depth, long a, long b) {
 		Next best = new Next(a, operationList.get(0));
 
 		class SortList implements Comparable<SortList> {
@@ -124,7 +123,7 @@ class AI {
 		for (SortList node : nodes) {
 			if (resultMax[node.result] < best.value)
 				break;
-			Next next = new Next(enemyOperation(node.now, depth,best.value,b), node.o);
+			Next next = new Next(enemyOperation(node.now, depth, best.value, b), node.o);
 			for (Operation o : node.o)
 				if (o.equals(NONE))
 					next.value -= 0xffffffffL;
@@ -139,7 +138,7 @@ class AI {
 				Parameter.println("update");
 				best = next;
 			}
-			if(best.value>=b)
+			if (best.value >= b)
 				break;
 		}
 		if (MAX_DEPTH == depth) {
@@ -152,7 +151,7 @@ class AI {
 
 	// static boolean debug = false;
 
-	long enemyOperation(State now, int depth,long a,long b) {
+	long enemyOperation(State now, int depth, long a, long b) {
 		long value = b;
 		boolean flag = true;
 		ArrayList<State> hutuuList = new ArrayList<State>();
@@ -199,14 +198,14 @@ class AI {
 		if (flag) {
 			if (hutuuList.size() > 0) {
 				for (State state : hutuuList) {
-					value = Math.min(value, dfs(state, depth - 1,a,value).value);
-					if(a>=value)
+					value = Math.min(value, dfs(state, depth - 1, a, value).value);
+					if (a >= value)
 						return value;
 				}
 			} else if (tumiList.size() > 0) {
 				for (State state : tumiList) {
-					value = Math.min(value, dfs(state, depth - 1,a,value).value);
-					if(a>=value)
+					value = Math.min(value, dfs(state, depth - 1, a, value).value);
+					if (a >= value)
 						return value;
 				}
 			}

@@ -1,1 +1,1 @@
-java -jar codevs3finalAI.jar
+java -d64 -server -XX:+AggressiveOpts -jar test.jar

@@ -20,6 +20,7 @@ class State {
 	final static int BURST_MAP_INIT = 1000;
 	final static int MAX_INT = Integer.MAX_VALUE / 0xfff;
 	final static int[] dirs = new int[] { 0, -1, 1, -Parameter.X, Parameter.X };
+	static long time;
 
 	int map[] = new int[Parameter.XY];
 	int burstMap[] = new int[Parameter.XY];
@@ -52,7 +53,7 @@ class State {
 		{// Input
 			Scanner sc = new Scanner(str);
 
-			sc.nextLong(); // time
+			time = sc.nextLong(); // time
 			sc.nextInt(); // turn
 			sc.nextInt(); // max_turn
 			Parameter.setMyID(sc.nextInt());
@@ -80,8 +81,8 @@ class State {
 			sc.next();
 			int characters_num = sc.nextInt();
 			for (int i = 0; i < characters_num; i++) {
-				characters[i] = new Character(sc.nextInt(), sc.nextInt(), (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1),
-						sc.nextInt(), sc.nextInt());
+				characters[i] = new Character(sc.nextInt(), sc.nextInt(), (sc.nextInt() - 1) * Parameter.X
+						+ (sc.nextInt() - 1), sc.nextInt(), sc.nextInt());
 			}
 
 			int bomb_num = sc.nextInt();
@@ -326,10 +327,10 @@ class State {
 		long res = 0;
 		for (Character c : characters) {
 			if (c.player_id == Parameter.MY_ID)
-				res += (long) mapPosition[c.pos] + (long) (burstMap[c.pos] - liveMap[c.pos]) * 0xf + (long) c.bombCount * 0xfffffffL
-						+ (long) itemMap[c.pos];
+				res += (long) mapPosition[c.pos] + (long) (burstMap[c.pos] - liveMap[c.pos]) * 0xff
+						+ (long) c.bombCount * 0xfffffffL + (long) itemMap[c.pos];
 			else
-				res -= (long) (burstMap[c.pos] - liveMap[c.pos]) * 0xff + (long) c.bombCount * 0xfffffffL;
+				res -= (long) (burstMap[c.pos] - liveMap[c.pos]) * 0xfffff;
 		}
 		return res;
 	}
@@ -339,7 +340,7 @@ class State {
 		long res = 0;
 		for (Character c : characters) {
 			if (c.player_id == Parameter.MY_ID)
-				res += (long) (burstMap[c.pos] - liveMap[c.pos]) * 0xffff - c.bombCount * 0xffffff;
+				res += (long) (burstMap[c.pos] - liveMap[c.pos]) * 0xffff - c.bombCount * 0xfffffffL;
 		}
 		return res;
 	}
@@ -469,10 +470,12 @@ class State {
 			int allyDead = 0, enemyDead = 0;
 			for (Character character : characters) {
 				if (character.player_id == player_id
-						&& ((burstMemo[character.pos] & 1) != 0 || !liveDFS(character.pos, 0, memo, burstMemo, blockMemo, liveDepth - 1))) {
+						&& ((burstMemo[character.pos] & 1) != 0 || !liveDFS(character.pos, 0, memo, burstMemo,
+								blockMemo, liveDepth - 1))) {
 					allyDead++;
 				} else if (character.player_id != player_id
-						&& ((burstMemo[character.pos] & 1) != 0 || !liveDFS(character.pos, 0, memo, burstMemo, blockMemo, liveDepth - 1))) {
+						&& ((burstMemo[character.pos] & 1) != 0 || !liveDFS(character.pos, 0, memo, burstMemo,
+								blockMemo, liveDepth - 1))) {
 					enemyDead++;
 				}
 			}
@@ -505,7 +508,7 @@ class State {
 		return 2;
 	}
 
-	private static final int maxLiveDepth = 10;
+	private static final int maxLiveDepth = 13;
 
 	// 結果として、移動しない場合は爆弾の上にいられるようにすると成績が下がった
 	// 利点:爆弾の上に留まらないと死ぬケースで生き残れる
