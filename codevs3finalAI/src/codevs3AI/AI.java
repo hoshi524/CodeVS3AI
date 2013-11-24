@@ -27,7 +27,7 @@ class AI {
 
 	static final Random random = new Random();
 	static final Operation NONE = new Operation(Move.NONE, false, 5);
-	static final int MAX_DEPTH = 0;
+	static final int MAX_DEPTH = 1;
 
 	static final ArrayList<Operation[]> operationList = new ArrayList<Operation[]>();
 
@@ -77,7 +77,7 @@ class AI {
 	}
 
 	String think(String input) {
-		Next next = dfs(new State(input), MAX_DEPTH);
+		Next next = dfs(new State(input), MAX_DEPTH,Long.MIN_VALUE,Long.MAX_VALUE);
 
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < Parameter.PLAYER; i++) {
@@ -88,8 +88,8 @@ class AI {
 
 	HashSet<Long> used = new HashSet<Long>();
 
-	Next dfs(State now, int depth) {
-		Next best = new Next(Long.MIN_VALUE, operationList.get(0));
+	Next dfs(State now, int depth,long a,long b) {
+		Next best = new Next(a, operationList.get(0));
 
 		class SortList implements Comparable<SortList> {
 			final int result;
@@ -124,7 +124,7 @@ class AI {
 		for (SortList node : nodes) {
 			if (resultMax[node.result] < best.value)
 				break;
-			Next next = new Next(enemyOperation(node.now, depth), node.o);
+			Next next = new Next(enemyOperation(node.now, depth,best.value,b), node.o);
 			for (Operation o : node.o)
 				if (o.equals(NONE))
 					next.value -= 0xffffffffL;
@@ -133,12 +133,14 @@ class AI {
 					Parameter.print(o.toString() + " ");
 				Parameter.println(next.value + " ");
 			}
-			if ((best.value < next.value || (best.value == next.value && random.nextBoolean()))
+			if ((best.value < next.value)
 					&& (next.value > Long.MAX_VALUE / 4 || !putNotGridBomb(node.now, node.o, Parameter.MY_ID))
 					&& (MAX_DEPTH != depth || best.value == Long.MIN_VALUE || !used.contains(node.now.getHash()))) {
 				Parameter.println("update");
 				best = next;
 			}
+			if(best.value>=b)
+				break;
 		}
 		if (MAX_DEPTH == depth) {
 			State tmp = new State(now);
@@ -150,8 +152,8 @@ class AI {
 
 	// static boolean debug = false;
 
-	long enemyOperation(State now, int depth) {
-		long value = Long.MAX_VALUE;
+	long enemyOperation(State now, int depth,long a,long b) {
+		long value = b;
 		boolean flag = true;
 		ArrayList<State> hutuuList = new ArrayList<State>();
 		ArrayList<State> tumiList = new ArrayList<State>();
@@ -197,11 +199,15 @@ class AI {
 		if (flag) {
 			if (hutuuList.size() > 0) {
 				for (State state : hutuuList) {
-					value = Math.min(value, dfs(state, depth - 1).value);
+					value = Math.min(value, dfs(state, depth - 1,a,value).value);
+					if(a>=value)
+						return value;
 				}
 			} else if (tumiList.size() > 0) {
 				for (State state : tumiList) {
-					value = Math.min(value, dfs(state, depth - 1).value);
+					value = Math.min(value, dfs(state, depth - 1,a,value).value);
+					if(a>=value)
+						return value;
 				}
 			}
 		}
