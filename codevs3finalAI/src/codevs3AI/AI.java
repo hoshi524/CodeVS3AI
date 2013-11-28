@@ -87,6 +87,7 @@ class AI {
 
 	HashSet<Long> used = new HashSet<Long>();
 
+	@SuppressWarnings("unused")
 	Next dfs(State now, int depth, long a, long b) {
 		Next best = new Next(a, operationList.get(0));
 
@@ -127,15 +128,19 @@ class AI {
 			for (Operation o : node.o)
 				if (o.equals(NONE))
 					next.value -= 0xffffffffL;
-			if (Parameter.DEBUG) {
+			if (Parameter.DEBUG && MAX_DEPTH == depth) {
+				debug = MAX_DEPTH == depth;
+				State tmp = new State(now);
+				tmp.operations(node.o, Parameter.MY_ID);
 				for (Operation o : node.o)
 					Parameter.print(o.toString() + " ");
-				Parameter.println(next.value + " ");
+				Parameter.println(next.value + " " + node.result);
+				debug = false;
 			}
-			if ((best.value < next.value)
-					&& (next.value > Long.MAX_VALUE / 4 || !putNotGridBomb(node.now, node.o, Parameter.MY_ID))
+			if ((best.value < next.value) && (next.value > Long.MAX_VALUE / 4 || !putNotGridBomb(node.now, node.o, Parameter.MY_ID))
 					&& (MAX_DEPTH != depth || best.value == Long.MIN_VALUE || !used.contains(node.now.getHash()))) {
-				Parameter.println("update");
+				if (MAX_DEPTH == depth)
+					Parameter.println("update");
 				best = next;
 			}
 			if (best.value >= b)
@@ -149,7 +154,7 @@ class AI {
 		return best;
 	}
 
-	// static boolean debug = false;
+	static boolean debug = false;
 
 	long enemyOperation(State now, int depth, long a, long b) {
 		long value = b;
@@ -168,9 +173,11 @@ class AI {
 			if (res == 0 || res == -2) {
 				// 不正な行動
 				// 魔法が有効じゃない
+				// 自分のキャラクターが死んだ
 				continue;
 			}
 			tmp.step();
+
 			if (res == 2) {
 				// どっちも詰んでない
 				if (depth == 0) {
@@ -188,7 +195,11 @@ class AI {
 				flag = false;
 			} else if (res == -1) {
 				// 相手が詰んだ
-				if (depth == 0) {
+				boolean nowDead = false;
+				for (Character c : tmp.characters)
+					if (c.player_id == Parameter.ENEMY_ID)
+						nowDead |= c.dead;
+				if (depth == 0 || nowDead) {
 					value = Math.min(value, tmp.calcFleeValue() + (Long.MAX_VALUE / 2));
 				} else {
 					tumiList.add(tmp);

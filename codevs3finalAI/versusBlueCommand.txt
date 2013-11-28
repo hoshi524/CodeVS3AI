@@ -1,1 +1,1 @@
-java -d64 -server -XX:+AggressiveOpts -jar test.jar
+java -d64 -server -XX:+AggressiveOpts -jar AI/test.jar
