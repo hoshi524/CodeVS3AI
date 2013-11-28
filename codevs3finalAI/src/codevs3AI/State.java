@@ -343,7 +343,7 @@ class State {
 				if (c.player_id == Parameter.MY_ID)
 					mapPosition[pos] -= (30 - Math.abs(x1 - x2) - Math.abs(y1 - y2)) * 0xffff;
 				else
-					mapPosition[pos] += (30 - Math.abs(x1 - x2) - Math.abs(y1 - y2)) * 0xffff;
+					mapPosition[pos] += (30 - Math.abs(x1 - x2) - Math.abs(y1 - y2)) * 0xff;
 
 			}
 		}
