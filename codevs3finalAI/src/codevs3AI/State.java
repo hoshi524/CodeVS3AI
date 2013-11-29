@@ -3,9 +3,11 @@ package codevs3AI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Scanner;
+import java.util.Set;
 
 import util.IntQueue;
 
@@ -21,7 +23,7 @@ class State {
 	final static int MAX_INT = Integer.MAX_VALUE / 0xfff;
 	final static int[] dirs = new int[] { 0, -1, 1, -Parameter.X, Parameter.X };
 	static long time;
-	static int turn;
+	int turn;
 
 	int map[] = new int[Parameter.XY];
 	int burstMap[] = new int[Parameter.XY];
@@ -31,6 +33,7 @@ class State {
 	int fieldBombCount[] = new int[Parameter.CHARACTER_NUM];
 
 	ArrayList<Bomb> bombList = new ArrayList<Bomb>();
+	Set<Integer> nowPutBomb = new HashSet<Integer>();
 
 	public static final boolean isin(int dir, int next) {
 		int x = next % Parameter.X;
@@ -38,6 +41,7 @@ class State {
 	}
 
 	State(State s) {
+		this.turn = s.turn;
 		System.arraycopy(s.map, 0, map, 0, Parameter.XY);
 		System.arraycopy(s.burstMap, 0, burstMap, 0, Parameter.XY);
 		System.arraycopy(s.fieldBombCount, 0, fieldBombCount, 0, Parameter.CHARACTER_NUM);
@@ -48,6 +52,7 @@ class State {
 		for (Bomb b : s.bombList) {
 			bombList.add(new Bomb(b));
 		}
+		this.nowPutBomb = new HashSet<Integer>(s.nowPutBomb);
 	}
 
 	State(String str) {
@@ -101,7 +106,7 @@ class State {
 
 			int item_num = sc.nextInt();
 			Arrays.fill(itemMap, 0);
-			int diff = Integer.MAX_VALUE / 40;
+			int diff = 0xffff;
 			for (int i = 0; i < item_num; i++) {
 				String item_type = sc.next();
 				int pos = (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1);
@@ -114,7 +119,7 @@ class State {
 
 				IntQueue que = new IntQueue();
 				que.add(pos);
-				itemMap[pos] = Integer.MAX_VALUE / 4;
+				itemMap[pos] = 0xffffff;
 
 				while (que.notEmpty()) {
 					int q_pos = que.poll();
@@ -160,6 +165,7 @@ class State {
 	}
 
 	void step() {
+		nowPutBomb.clear();
 		for (Character c : characters) {
 			if (map[c.pos] == NUMBER)
 				c.bomb++;
@@ -336,31 +342,23 @@ class State {
 
 	private int[] calcMapPosition() {
 		int mapPosition[] = new int[Parameter.XY];
-		for (int pos = 0; pos < Parameter.XY; pos++) {
-			int x1 = pos % Parameter.X, y1 = pos / Parameter.X;
-			for (Character c : characters) {
-				int x2 = c.pos % Parameter.X, y2 = c.pos / Parameter.X;
-				if (c.player_id == Parameter.MY_ID)
-					mapPosition[pos] -= (30 - Math.abs(x1 - x2) - Math.abs(y1 - y2)) * 0xffff;
-				else
-					mapPosition[pos] += (30 - Math.abs(x1 - x2) - Math.abs(y1 - y2)) * 0xff;
 
+		// 角は評価を下げておく
+		mapPosition[0] = mapPosition[1] = mapPosition[11] = mapPosition[12] = mapPosition[13] = mapPosition[25] = mapPosition[117] = mapPosition[129] = mapPosition[130] = mapPosition[131] = mapPosition[141] = mapPosition[142] = -0xfffffff;
+
+		for (Character c : characters) {
+			int x2 = c.pos % Parameter.X, y2 = c.pos / Parameter.X;
+			for (int x = 0; x < Parameter.X; x++) {
+				for (int y = 0; y < Parameter.Y; y++) {
+					if (c.player_id == Parameter.MY_ID)
+						mapPosition[y * Parameter.X + x] -= Math.max((12 - Math.abs(x - x2) - Math.abs(y - y2)), 0) * 0xffffff;
+					else
+						mapPosition[y * Parameter.X + x] += (30 - Math.abs(x - x2) - Math.abs(y - y2)) * 0xff;
+
+				}
 			}
 		}
 
-		// 角は評価を下げておく
-		mapPosition[0] -= 0xfffffffL;
-		mapPosition[1] -= 0xfffffffL;
-		mapPosition[11] -= 0xfffffffL;
-		mapPosition[12] -= 0xfffffffL;
-		mapPosition[13] -= 0xfffffffL;
-		mapPosition[25] -= 0xfffffffL;
-		mapPosition[117] -= 0xfffffffL;
-		mapPosition[129] -= 0xfffffffL;
-		mapPosition[130] -= 0xfffffffL;
-		mapPosition[131] -= 0xfffffffL;
-		mapPosition[141] -= 0xfffffffL;
-		mapPosition[142] -= 0xfffffffL;
 		return mapPosition;
 	}
 
@@ -370,7 +368,7 @@ class State {
 		long res = 0;
 		for (Character c : characters) {
 			if (c.player_id == Parameter.MY_ID)
-				res += (long) mapPosition[c.pos] + (long) (burstMap[c.pos] - liveMap[c.pos]) * 0xff + (long) c.bombCount * 0xfffffffL
+				res += (long) mapPosition[c.pos] + (burstMap[c.pos] - liveMap[c.pos]) + (long) c.bombCount * 0xfffffffL
 						+ (long) itemMap[c.pos];
 			else
 				res -= (long) (burstMap[c.pos] - liveMap[c.pos]) * 0xfffff;
@@ -383,7 +381,7 @@ class State {
 		long res = 0;
 		for (Character c : characters) {
 			if (c.player_id == Parameter.MY_ID)
-				res += (long) (burstMap[c.pos] - liveMap[c.pos]) * 0xffff - c.bombCount * 0xfffffffL;
+				res += (burstMap[c.pos] - liveMap[c.pos]) + (c.bombCount == 0 ? 10 : c.bombCount) * 0xfffff;
 		}
 		return res;
 	}
@@ -395,7 +393,8 @@ class State {
 				continue;
 			Operation operation = operations[character.id & 1];
 			int next_pos = character.pos + operation.move.dir;
-			if (!isin(operation.move.dir, next_pos) || (next_pos != character.pos && map[next_pos] > BLANK)) {
+			if (!isin(operation.move.dir, next_pos) || map[next_pos] == SOFT_BLOCK || map[next_pos] == HARD_BLOCK
+					|| (map[next_pos] == BOMB && next_pos != character.pos && !nowPutBomb.contains(next_pos))) {
 				// Parameter.println("移不");
 				return 0;
 			}
@@ -407,10 +406,8 @@ class State {
 		int baseDanger = enemyDanger(player_id);
 		Arrays.fill(posBuf, -1);
 		for (Character character : characters) {
-			if (character.player_id != player_id)
-				continue;
 			Operation operation = operations[character.id & 1];
-			if (!operation.magic)
+			if (character.player_id != player_id || !operation.magic)
 				continue;
 			if (fieldBombCount[character.id] >= character.bomb) {
 				// Parameter.println("魔不");
@@ -427,6 +424,7 @@ class State {
 			map[character.pos] = BOMB;
 			character.bombCount++;
 			fieldBombCount[character.id]++;
+			nowPutBomb.add(character.pos);
 		}
 		if (!softBlockBomb(posBuf, fireBuf)) {
 			calcBurstMap();
@@ -600,12 +598,11 @@ class State {
 					}
 				}
 			}
-			int z = 0;
+			int enemyDanger = 0;
 			for (int p = 0; p < Parameter.XY; p++) {
 				if (enemyMap[p] > 0)
-					z++;
+					enemyDanger -= 0xffff;
 			}
-			int enemyDanger = (30 - z) * 0xffff;
 			for (int p = 0; p < Parameter.XY; p++) {
 				enemyDanger += enemyMap[p] * Math.max(10 - burstMap[p], 0);
 			}
@@ -630,11 +627,9 @@ class State {
 					next_pos += d;
 					if (!isin(d, next_pos) || map[next_pos] == HARD_BLOCK)
 						break;
-					if (burstMap[next_pos] == BURST_MAP_INIT) {
-						if (map[next_pos] == SOFT_BLOCK) {
-							res |= 1 << i;
-							break base;
-						}
+					if (burstMap[next_pos] == BURST_MAP_INIT && map[next_pos] == SOFT_BLOCK) {
+						res |= 1 << i;
+						break base;
 					}
 				}
 			}

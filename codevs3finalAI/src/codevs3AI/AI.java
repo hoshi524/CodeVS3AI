@@ -75,8 +75,9 @@ class AI {
 	}
 
 	String think(String input) {
-		Next next = dfs(new State(input), MAX_DEPTH, Long.MIN_VALUE, Long.MAX_VALUE);
-		System.err.println(next.value);
+		State state = new State(input);
+		Next next = dfs(state, MAX_DEPTH, Long.MIN_VALUE, Long.MAX_VALUE);
+		System.err.println(state.turn + " : " + next.value);
 
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < Parameter.PLAYER; i++) {
@@ -128,10 +129,11 @@ class AI {
 			for (Operation o : node.o)
 				if (o.equals(NONE))
 					next.value -= 0xffffffffL;
-			if (Parameter.DEBUG && MAX_DEPTH == depth) {
+			if (Parameter.DEBUG) {
 				debug = MAX_DEPTH == depth;
 				State tmp = new State(now);
 				tmp.operations(node.o, Parameter.MY_ID);
+				Parameter.print(depth + " ");
 				for (Operation o : node.o)
 					Parameter.print(o.toString() + " ");
 				Parameter.println(next.value + " " + node.result);
