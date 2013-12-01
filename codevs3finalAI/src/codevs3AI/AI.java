@@ -88,7 +88,7 @@ class AI {
 
 	HashSet<Long> used = new HashSet<Long>();
 
-	@SuppressWarnings("unused")
+	// @SuppressWarnings("unused")
 	Next dfs(State now, int depth, long a, long b) {
 		Next best = new Next(a, operationList.get(0));
 
@@ -128,7 +128,7 @@ class AI {
 			Next next = new Next(enemyOperation(node.now, depth, best.value, b), node.o);
 			for (Operation o : node.o)
 				if (o.equals(NONE))
-					next.value -= 0xffffffffL;
+					next.value -= 0xfffffff;
 			if (Parameter.DEBUG) {
 				debug = MAX_DEPTH == depth;
 				State tmp = new State(now);
@@ -139,7 +139,8 @@ class AI {
 				Parameter.println(next.value + " " + node.result);
 				debug = false;
 			}
-			if ((best.value < next.value) && (next.value > Long.MAX_VALUE / 4 || !putNotGridBomb(node.now, node.o, Parameter.MY_ID))
+			if ((best.value < next.value)
+					&& (next.value > Long.MAX_VALUE >> 2 || !putNotGridBomb(node.now, node.o, Parameter.MY_ID))
 					&& (MAX_DEPTH != depth || best.value == Long.MIN_VALUE || !used.contains(node.now.getHash()))) {
 				if (MAX_DEPTH == depth)
 					Parameter.println("update");

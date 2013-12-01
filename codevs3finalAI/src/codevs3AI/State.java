@@ -87,8 +87,8 @@ class State {
 			sc.next();
 			int characters_num = sc.nextInt();
 			for (int i = 0; i < characters_num; i++) {
-				characters[i] = new Character(sc.nextInt(), sc.nextInt(), (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1),
-						sc.nextInt(), sc.nextInt());
+				characters[i] = new Character(sc.nextInt(), sc.nextInt(), (sc.nextInt() - 1) * Parameter.X
+						+ (sc.nextInt() - 1), sc.nextInt(), sc.nextInt());
 			}
 
 			int bomb_num = sc.nextInt();
@@ -106,7 +106,7 @@ class State {
 
 			int item_num = sc.nextInt();
 			Arrays.fill(itemMap, 0);
-			int diff = 0xffff;
+			int diff = Integer.MAX_VALUE >> 4;
 			for (int i = 0; i < item_num; i++) {
 				String item_type = sc.next();
 				int pos = (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1);
@@ -119,7 +119,7 @@ class State {
 
 				IntQueue que = new IntQueue();
 				que.add(pos);
-				itemMap[pos] = 0xffffff;
+				itemMap[pos] = Integer.MAX_VALUE >> 1;
 
 				while (que.notEmpty()) {
 					int q_pos = que.poll();
@@ -136,13 +136,41 @@ class State {
 			}
 
 			sc.close();
+
+			if (turn >= 300) {
+				for (int q = 0; q < 2; q++) {
+					int dy[] = new int[] { 0, 1, 0, -1 };
+					int dx[] = new int[] { 1, 0, -1, 0 };
+					int x = -1, y = 0, i = 0, j = 1;
+					while (true) {
+						x += dx[i];
+						y += dy[i];
+						int pos = y * Parameter.X + x;
+						if (map[pos] != HARD_BLOCK) {
+							map[pos] = HARD_BLOCK;
+							break;
+						}
+						if (i == 0 && x == Parameter.X - j)
+							i = 1;
+						else if (i == 1 && y == Parameter.Y - j)
+							i = 2;
+						else if (i == 2 && x == j - 1)
+							i = 3;
+						else if (i == 3 && y == j) {
+							i = 0;
+							j++;
+						}
+					}
+				}
+			}
+
 			Parameter.println("map");
 			for (int y = 0; y < Parameter.Y; y++) {
 				for (int x = 0; x < Parameter.X; x++) {
 					boolean flag = true;
 					for (Character c : characters) {
 						if (c.pos == x + y * Parameter.X) {
-							Parameter.print("   p");
+							Parameter.print("    p");
 							flag = false;
 							break;
 						}
@@ -182,7 +210,7 @@ class State {
 		boolean attacked[] = new boolean[Parameter.XY];
 
 		turn++;
-		if (turn >= 298 && (turn & 1) == 0) {
+		if (turn >= 294 && (turn & 1) == 0) {
 			int dy[] = new int[] { 0, 1, 0, -1 };
 			int dx[] = new int[] { 1, 0, -1, 0 };
 			int x = -1, y = 0, i = 0, j = 1;
@@ -203,9 +231,9 @@ class State {
 					i = 1;
 				else if (i == 1 && y == Parameter.Y - j)
 					i = 2;
-				else if (i == 2 && x == j)
+				else if (i == 2 && x == j - 1)
 					i = 3;
-				else if (i == 3 && y == j + 1) {
+				else if (i == 3 && y == j) {
 					i = 0;
 					j++;
 				}
@@ -511,10 +539,12 @@ class State {
 			int allyDead = 0, enemyDead = 0;
 			for (Character character : characters) {
 				if (character.player_id == player_id
-						&& ((burstMemo[character.pos] & 1) != 0 || !liveDFS(character.pos, 0, memo, burstMemo, blockMemo, liveDepth - 1))) {
+						&& ((burstMemo[character.pos] & 1) != 0 || !liveDFS(character.pos, 0, memo, burstMemo,
+								blockMemo, liveDepth - 1))) {
 					allyDead++;
 				} else if (character.player_id != player_id
-						&& ((burstMemo[character.pos] & 1) != 0 || !liveDFS(character.pos, 0, memo, burstMemo, blockMemo, liveDepth - 1))) {
+						&& ((burstMemo[character.pos] & 1) != 0 || !liveDFS(character.pos, 0, memo, burstMemo,
+								blockMemo, liveDepth - 1))) {
 					enemyDead++;
 				}
 			}
