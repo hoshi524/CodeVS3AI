@@ -137,39 +137,6 @@ class State {
 
 			sc.close();
 
-			if (turn >= 300) {
-				for (int q = 0; q < 2; q++) {
-					int dy[] = new int[] { 0, 1, 0, -1 };
-					int dx[] = new int[] { 1, 0, -1, 0 };
-					int x = -1, y = 0, i = 0, j = 1;
-					while (true) {
-						x += dx[i];
-						y += dy[i];
-						int pos = y * Parameter.X + x;
-						if (map[pos] != HARD_BLOCK) {
-							map[pos] = HARD_BLOCK;
-							break;
-						}
-						if (j > Parameter.X) {
-							// 無限ループ回避でとりあえず入れておく
-							// jがそこまで大きくならない可能性で実行されない？
-							System.err.println("error hard block");
-							break;
-						}
-						if (i == 0 && x == Parameter.X - j)
-							i = 1;
-						else if (i == 1 && y == Parameter.Y - j)
-							i = 2;
-						else if (i == 2 && x == j - 1)
-							i = 3;
-						else if (i == 3 && y == j) {
-							i = 0;
-							j++;
-						}
-					}
-				}
-			}
-
 			Parameter.println("map");
 			for (int y = 0; y < Parameter.Y; y++) {
 				for (int x = 0; x < Parameter.X; x++) {
@@ -385,6 +352,41 @@ class State {
 
 		// 角は評価を下げておく
 		mapPosition[0] = mapPosition[1] = mapPosition[11] = mapPosition[12] = mapPosition[13] = mapPosition[25] = mapPosition[117] = mapPosition[129] = mapPosition[130] = mapPosition[131] = mapPosition[141] = mapPosition[142] = -0xfffffff;
+		if (turn >= 300) {
+			int tmpMap[] = new int[Parameter.XY];
+			System.arraycopy(tmpMap, 0, map, 0, Parameter.XY);
+			for (int q = 0; q < 2; q++) {
+				int dy[] = new int[] { 0, 1, 0, -1 };
+				int dx[] = new int[] { 1, 0, -1, 0 };
+				int x = -1, y = 0, i = 0, j = 1;
+				while (true) {
+					x += dx[i];
+					y += dy[i];
+					int pos = y * Parameter.X + x;
+					if (tmpMap[pos] != HARD_BLOCK) {
+						tmpMap[pos] = HARD_BLOCK;
+						mapPosition[pos] -= 0xfffffff;
+						break;
+					}
+					if (j > Parameter.X) {
+						// 無限ループ回避でとりあえず入れておく
+						// jがそこまで大きくならない可能性で実行されない？
+						System.err.println("error hard block");
+						break;
+					}
+					if (i == 0 && x == Parameter.X - j)
+						i = 1;
+					else if (i == 1 && y == Parameter.Y - j)
+						i = 2;
+					else if (i == 2 && x == j - 1)
+						i = 3;
+					else if (i == 3 && y == j) {
+						i = 0;
+						j++;
+					}
+				}
+			}
+		}
 
 		for (Character c : characters) {
 			int x2 = c.pos % Parameter.X, y2 = c.pos / Parameter.X;
