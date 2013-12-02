@@ -76,7 +76,11 @@ class AI {
 
 	String think(String input) {
 		State state = new State(input);
-		Next next = dfs(state, MAX_DEPTH, Long.MIN_VALUE, Long.MAX_VALUE);
+		Next next;
+		if (State.time < 50000)
+			next = dfs(state, 0, Long.MIN_VALUE, Long.MAX_VALUE);
+		else
+			next = dfs(state, MAX_DEPTH, Long.MIN_VALUE, Long.MAX_VALUE);
 		System.err.println(state.turn + " : " + next.value);
 
 		StringBuilder sb = new StringBuilder();
@@ -139,8 +143,7 @@ class AI {
 				Parameter.println(next.value + " " + node.result);
 				debug = false;
 			}
-			if ((best.value < next.value)
-					&& (next.value > Long.MAX_VALUE >> 2 || !putNotGridBomb(node.now, node.o, Parameter.MY_ID))
+			if ((best.value < next.value) && (next.value > Long.MAX_VALUE >> 2 || !putNotGridBomb(node.now, node.o, Parameter.MY_ID))
 					&& (MAX_DEPTH != depth || best.value == Long.MIN_VALUE || !used.contains(node.now.getHash()))) {
 				if (MAX_DEPTH == depth)
 					Parameter.println("update");

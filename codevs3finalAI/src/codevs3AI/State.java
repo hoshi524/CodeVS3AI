@@ -87,8 +87,8 @@ class State {
 			sc.next();
 			int characters_num = sc.nextInt();
 			for (int i = 0; i < characters_num; i++) {
-				characters[i] = new Character(sc.nextInt(), sc.nextInt(), (sc.nextInt() - 1) * Parameter.X
-						+ (sc.nextInt() - 1), sc.nextInt(), sc.nextInt());
+				characters[i] = new Character(sc.nextInt(), sc.nextInt(), (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1),
+						sc.nextInt(), sc.nextInt());
 			}
 
 			int bomb_num = sc.nextInt();
@@ -148,6 +148,12 @@ class State {
 						int pos = y * Parameter.X + x;
 						if (map[pos] != HARD_BLOCK) {
 							map[pos] = HARD_BLOCK;
+							break;
+						}
+						if (j > Parameter.X) {
+							// 無限ループ回避でとりあえず入れておく
+							// jがそこまで大きくならない可能性で実行されない？
+							System.err.println("error hard block");
 							break;
 						}
 						if (i == 0 && x == Parameter.X - j)
@@ -225,6 +231,12 @@ class State {
 							use[bi] = true;
 						}
 					}
+					break;
+				}
+				if (j > Parameter.X) {
+					// 無限ループ回避でとりあえず入れておく
+					// jがそこまで大きくならない可能性で実行されない？
+					System.err.println("error hard block");
 					break;
 				}
 				if (i == 0 && x == Parameter.X - j)
@@ -465,7 +477,7 @@ class State {
 		}
 
 		{// liveDFS
-			int memo[][] = new int[maxLiveDepth][Parameter.XY];
+			int memo[][] = new int[Parameter.maxLiveDepth][Parameter.XY];
 			int burstMemo[] = new int[Parameter.XY];
 			int blockMemo[] = new int[Parameter.XY];
 
@@ -478,7 +490,7 @@ class State {
 			boolean usedBomb[] = new boolean[Parameter.XY];
 			int bombCount = 0, allBombCount = bombList.size();
 			int liveDepth;
-			for (liveDepth = 0; liveDepth < maxLiveDepth && bombCount < allBombCount; liveDepth++) {
+			for (liveDepth = 0; liveDepth < Parameter.maxLiveDepth && bombCount < allBombCount; liveDepth++) {
 				boolean tmpSoftBlockClash[] = new boolean[Parameter.XY];
 				for (Bomb bomb : bombList) {
 					if (bomb.limitTime == liveDepth && !usedBomb[bomb.pos]) {
@@ -539,12 +551,10 @@ class State {
 			int allyDead = 0, enemyDead = 0;
 			for (Character character : characters) {
 				if (character.player_id == player_id
-						&& ((burstMemo[character.pos] & 1) != 0 || !liveDFS(character.pos, 0, memo, burstMemo,
-								blockMemo, liveDepth - 1))) {
+						&& ((burstMemo[character.pos] & 1) != 0 || !liveDFS(character.pos, 0, memo, burstMemo, blockMemo, liveDepth - 1))) {
 					allyDead++;
 				} else if (character.player_id != player_id
-						&& ((burstMemo[character.pos] & 1) != 0 || !liveDFS(character.pos, 0, memo, burstMemo,
-								blockMemo, liveDepth - 1))) {
+						&& ((burstMemo[character.pos] & 1) != 0 || !liveDFS(character.pos, 0, memo, burstMemo, blockMemo, liveDepth - 1))) {
 					enemyDead++;
 				}
 			}
@@ -576,8 +586,6 @@ class State {
 		// Parameter.println("正常");
 		return 2;
 	}
-
-	private static final int maxLiveDepth = 13;
 
 	// 結果として、移動しない場合は爆弾の上にいられるようにすると成績が下がった
 	// 利点:爆弾の上に留まらないと死ぬケースで生き残れる
