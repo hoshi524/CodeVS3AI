@@ -1,5 +1,6 @@
 package codevs3AI;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -8,8 +9,6 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Scanner;
 import java.util.Set;
-
-import util.IntQueue;
 
 class State {
 
@@ -106,7 +105,7 @@ class State {
 
 			int item_num = sc.nextInt();
 			Arrays.fill(itemMap, 0);
-			int diff = Integer.MAX_VALUE >> 4;
+			int diff = Integer.MAX_VALUE >> 8;
 			for (int i = 0; i < item_num; i++) {
 				String item_type = sc.next();
 				int pos = (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1);
@@ -117,11 +116,11 @@ class State {
 					map[pos] = POWER;
 				}
 
-				IntQueue que = new IntQueue();
+				ArrayDeque<Integer> que = new ArrayDeque<Integer>();
 				que.add(pos);
-				itemMap[pos] = Integer.MAX_VALUE >> 1;
+				itemMap[pos] = Integer.MAX_VALUE >> 5;
 
-				while (que.notEmpty()) {
+				while (!que.isEmpty()) {
 					int q_pos = que.poll();
 					for (int dir : dirs) {
 						int next_pos = q_pos + dir;
@@ -162,6 +161,15 @@ class State {
 				Parameter.print(String.format("%5d", burstMap[x + y * Parameter.X]));
 			}
 			Parameter.println();
+		}
+		if (Parameter.DEBUG) {
+			int pmap[] = calcMapPosition();
+			for (int y = 0; y < Parameter.Y; y++) {
+				for (int x = 0; x < Parameter.X; x++) {
+					Parameter.print(String.format("%11d", pmap[x + y * Parameter.X]));
+				}
+				Parameter.println();
+			}
 		}
 	}
 
@@ -227,7 +235,7 @@ class State {
 				b.limitTime--;
 				continue;
 			}
-			Queue<Bomb> que = new LinkedList<Bomb>();
+			Queue<Bomb> que = new ArrayDeque<Bomb>();
 			que.add(b);
 			use[b1] = true;
 			attacked[b.pos] = true;
@@ -281,11 +289,6 @@ class State {
 		int size = bombList.size();
 		boolean use[] = new boolean[size];
 		Collections.sort(bombList);
-		for (int i = 0; i < bombList.size() - 1; i++) {
-			if (bombList.get(i).limitTime > bombList.get(i + 1).limitTime) {
-				throw new RuntimeException("okasii");
-			}
-		}
 		Queue<Bomb> bq = new LinkedList<Bomb>();
 
 		for (int i = 0; i < size; i++) {
@@ -351,11 +354,11 @@ class State {
 		int mapPosition[] = new int[Parameter.XY];
 
 		// 角は評価を下げておく
-		mapPosition[0] = mapPosition[1] = mapPosition[11] = mapPosition[12] = mapPosition[13] = mapPosition[25] = mapPosition[117] = mapPosition[129] = mapPosition[130] = mapPosition[131] = mapPosition[141] = mapPosition[142] = -0xfffffff;
+		mapPosition[0] = mapPosition[1] = mapPosition[11] = mapPosition[12] = mapPosition[13] = mapPosition[25] = mapPosition[117] = mapPosition[129] = mapPosition[130] = mapPosition[131] = mapPosition[141] = mapPosition[142] = -(Integer.MAX_VALUE >> 2);
 		if (turn >= 300) {
 			int tmpMap[] = new int[Parameter.XY];
-			System.arraycopy(tmpMap, 0, map, 0, Parameter.XY);
-			for (int q = 0; q < 2; q++) {
+			System.arraycopy(map, 0, tmpMap, 0, Parameter.XY);
+			for (int q = 0; q < 6; q++) {
 				int dy[] = new int[] { 0, 1, 0, -1 };
 				int dx[] = new int[] { 1, 0, -1, 0 };
 				int x = -1, y = 0, i = 0, j = 1;
@@ -365,7 +368,7 @@ class State {
 					int pos = y * Parameter.X + x;
 					if (tmpMap[pos] != HARD_BLOCK) {
 						tmpMap[pos] = HARD_BLOCK;
-						mapPosition[pos] -= 0xfffffff;
+						mapPosition[pos] -= (Integer.MAX_VALUE >> 2);
 						break;
 					}
 					if (j > Parameter.X) {
@@ -623,10 +626,10 @@ class State {
 				continue;
 
 			int enemyMap[] = new int[Parameter.XY];
-			IntQueue que = new IntQueue();
+			ArrayDeque<Integer> que = new ArrayDeque<Integer>();
 			enemyMap[c.pos] = 5;
 			que.add(c.pos);
-			while (que.notEmpty()) {
+			while (!que.isEmpty()) {
 				int now_pos = que.poll();
 				for (int d : dirs) {
 					int next_pos = now_pos + d;
