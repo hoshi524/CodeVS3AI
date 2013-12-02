@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Scanner;
 import java.util.Set;
@@ -289,7 +288,7 @@ class State {
 		int size = bombList.size();
 		boolean use[] = new boolean[size];
 		Collections.sort(bombList);
-		Queue<Bomb> bq = new LinkedList<Bomb>();
+		Queue<Bomb> bq = new ArrayDeque<Bomb>();
 
 		for (int i = 0; i < size; i++) {
 			if (use[i])
@@ -502,7 +501,7 @@ class State {
 						usedBomb[bomb.pos] = true;
 						bombCount++;
 						burstMemo[bomb.pos] |= 1 << liveDepth;
-						Queue<Bomb> que = new LinkedList<Bomb>();
+						Queue<Bomb> que = new ArrayDeque<Bomb>();
 						que.add(bomb);
 						while (!que.isEmpty()) {
 							Bomb bb = que.poll();
