@@ -114,7 +114,7 @@ class AI {
 		}
 		ArrayList<SortList> nodes = new ArrayList<SortList>();
 		final long resultMax[] = new long[] { -1,//ここは参照しないはず
-				Long.MIN_VALUE / 16, //相打ちの時
+				Long.MIN_VALUE / 8, //相打ちの時
 				Long.MAX_VALUE / 4, // 正常時
 				Long.MAX_VALUE, // 相手詰み時
 		};
@@ -143,7 +143,8 @@ class AI {
 				Parameter.println(next.value + " " + node.result);
 				debug = false;
 			}
-			if ((best.value < next.value) && (next.value > Long.MAX_VALUE >> 2 || !putNotGridBomb(node.now, node.o, Parameter.MY_ID))
+			if (best.value < next.value
+					&& (next.value > Long.MAX_VALUE / 4 || !putNotGridBomb(node.now, node.o, Parameter.MY_ID))
 					&& (MAX_DEPTH != depth || best.value == Long.MIN_VALUE || !used.contains(node.now.getHash()))) {
 				if (MAX_DEPTH == depth)
 					Parameter.println("update");
@@ -165,6 +166,7 @@ class AI {
 	long enemyOperation(State now, int depth, long a, long b) {
 		long value = b;
 		boolean flag = true;
+		boolean aiuti = true, kati = true;
 		ArrayList<State> hutuuList = new ArrayList<State>();
 		ArrayList<State> tumiList = new ArrayList<State>();
 		for (Operation[] enemyOperations : operationList) {
@@ -185,6 +187,8 @@ class AI {
 						nowAllyDead++;
 					else
 						nowEnemyDead++;
+			aiuti &= nowAllyDead > 0 && nowEnemyDead >= nowAllyDead;
+			kati &= nowEnemyDead > nowAllyDead;
 			if (nowAllyDead > 0 && nowEnemyDead == 0) {
 				return (Long.MIN_VALUE / 2) - Integer.MAX_VALUE;
 			}
@@ -214,6 +218,9 @@ class AI {
 					tumiList.add(tmp);
 				}
 			}
+		}
+		if (!kati && aiuti) {
+			return (Long.MIN_VALUE / 4) - Integer.MAX_VALUE;
 		}
 		if (flag) {
 			if (hutuuList.size() > 0) {
