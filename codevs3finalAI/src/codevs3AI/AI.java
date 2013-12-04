@@ -132,7 +132,7 @@ class AI {
 			Next next = new Next(enemyOperation(node.now, depth, best.value, b), node.o);
 			for (Operation o : node.o)
 				if (o.equals(NONE))
-					next.value -= 0xfffffff;
+					next.value -= 0xffffff;
 			if (Parameter.DEBUG) {
 				debug = MAX_DEPTH == depth;
 				State tmp = new State(now);
@@ -178,6 +178,16 @@ class AI {
 				continue;
 			}
 			tmp.step();
+			int nowAllyDead = 0, nowEnemyDead = 0;
+			for (Character c : tmp.characters)
+				if (c.dead)
+					if (c.player_id == Parameter.MY_ID)
+						nowAllyDead++;
+					else
+						nowEnemyDead++;
+			if (nowAllyDead > 0 && nowEnemyDead == 0) {
+				return (Long.MIN_VALUE / 2) - Integer.MAX_VALUE;
+			}
 
 			if (res == 2) {
 				// どっちも詰んでない
@@ -189,7 +199,7 @@ class AI {
 			} else if (res == 1) {
 				// 相打ち
 				if (depth == 0)
-					value = Math.min(value, tmp.calcFleeValue() + (Long.MIN_VALUE / 8));
+					value = Math.min(value, tmp.calcFleeValue() + (Long.MIN_VALUE / 4));
 				else
 					hutuuList.add(tmp);
 			} else if (res == 3) {
@@ -198,11 +208,7 @@ class AI {
 				flag = false;
 			} else if (res == -1) {
 				// 相手が詰んだ
-				boolean nowDead = false;
-				for (Character c : tmp.characters)
-					if (c.player_id == Parameter.ENEMY_ID)
-						nowDead |= c.dead;
-				if (depth == 0 || nowDead) {
+				if (depth == 0 || nowEnemyDead > 0) {
 					value = Math.min(value, tmp.calcFleeValue() + (Long.MAX_VALUE / 2));
 				} else {
 					tumiList.add(tmp);
