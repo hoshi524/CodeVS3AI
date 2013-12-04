@@ -170,12 +170,7 @@ class AI {
 		for (Operation[] enemyOperations : operationList) {
 			State tmp = new State(now);
 
-			/*if (now.map[78] == State.BOMB)
-				debug = true;*/
 			int res = tmp.operations(enemyOperations, Parameter.ENEMY_ID);
-			/*if (now.map[78] == State.BOMB)
-				debug = false;*/
-
 			if (res == 0 || res == -2) {
 				// 不正な行動
 				// 魔法が有効じゃない
@@ -193,11 +188,13 @@ class AI {
 				}
 			} else if (res == 1) {
 				// 相打ち
-				value = Math.min(value, tmp.calcFleeValue() + (Long.MIN_VALUE / 8));
-				flag = false;
+				if (depth == 0)
+					value = Math.min(value, tmp.calcFleeValue() + (Long.MIN_VALUE / 8));
+				else
+					hutuuList.add(tmp);
 			} else if (res == 3) {
 				// 自分が詰んだ
-				value = Math.min(value, tmp.calcFleeValue() + (Long.MIN_VALUE / 4));
+				value = Math.min(value, tmp.calcFleeValue() + (Long.MIN_VALUE / 2));
 				flag = false;
 			} else if (res == -1) {
 				// 相手が詰んだ

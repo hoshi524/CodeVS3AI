@@ -553,17 +553,30 @@ class State {
 				}*/
 
 			int allyDead = 0, enemyDead = 0;
+			int nowAllyDead = 0, nowEnemyDead = 0;
 			for (Character character : characters) {
 				if (character.player_id == player_id
 						&& ((burstMemo[character.pos] & 1) != 0 || !liveDFS(character.pos, 0, memo, burstMemo, blockMemo, liveDepth - 1))) {
+					if ((burstMemo[character.pos] & 1) != 0)
+						nowAllyDead++;
 					allyDead++;
 				} else if (character.player_id != player_id
 						&& ((burstMemo[character.pos] & 1) != 0 || !liveDFS(character.pos, 0, memo, burstMemo, blockMemo, liveDepth - 1))) {
+					if ((burstMemo[character.pos] & 1) != 0)
+						nowEnemyDead++;
 					enemyDead++;
 				}
 			}
-			if (AI.debug)
-				Parameter.println(allyDead + " " + enemyDead);
+			if (nowAllyDead > 0 && nowAllyDead == nowEnemyDead) {
+				return 1;
+			}
+			if (nowAllyDead > nowEnemyDead) {
+				return -1;
+			}
+			if (nowAllyDead < nowEnemyDead) {
+				return 3;
+			}
+
 			if (allyDead > 0 && allyDead == enemyDead) {
 				// Parameter.println("相打");
 				return 1;
@@ -576,7 +589,7 @@ class State {
 				// Parameter.println("相詰");
 				return 3;
 			}
-			for (Character character : characters) {
+			/*for (Character character : characters) {
 				if (character.player_id != player_id)
 					continue;
 				Operation operation = operations[character.id & 1];
@@ -584,7 +597,7 @@ class State {
 					// 相手が詰まない状態では格子以外の位置に爆弾を置かない
 					return 0;
 				}
-			}
+			}*/
 		}
 
 		// Parameter.println("正常");
