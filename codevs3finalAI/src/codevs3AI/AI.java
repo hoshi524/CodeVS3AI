@@ -1,6 +1,7 @@
 package codevs3AI;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Scanner;
 
@@ -24,7 +25,7 @@ class AI {
 	}
 
 	static final Operation NONE = new Operation(Move.NONE, false, 5);
-	static final int MAX_DEPTH = 1;
+	static int MAX_DEPTH;
 
 	static final ArrayList<Operation[]> operationList = new ArrayList<Operation[]>();
 
@@ -61,14 +62,24 @@ class AI {
 		}
 	}
 
+	long start;
+
 	String think(String input) {
+		start = System.nanoTime();
+		already.clear();
 		State state = new State(input);
 		Next next;
-		if (State.time < 50000)
-			next = dfs(state, 0, Long.MIN_VALUE + Integer.MAX_VALUE, Long.MAX_VALUE - Integer.MAX_VALUE);
-		else
-			next = dfs(state, MAX_DEPTH, Long.MIN_VALUE + Integer.MAX_VALUE, Long.MAX_VALUE - Integer.MAX_VALUE);
+		if (State.time < 10000) {
+			MAX_DEPTH = 0;
+		} else if (State.time < 100000) {
+			MAX_DEPTH = 1;
+		} else {
+			MAX_DEPTH = 0;
+		}
+
+		next = dfs(state, MAX_DEPTH, Long.MIN_VALUE + Integer.MAX_VALUE, Long.MAX_VALUE - Integer.MAX_VALUE);
 		System.err.println(state.turn + " : " + next.value);
+		// System.err.println("sum state: " + already.size());
 
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < Parameter.PLAYER; i++) {
@@ -77,10 +88,28 @@ class AI {
 		return sb.toString();
 	}
 
+	boolean putNotGridBomb(State now, Operation operations[], int id) {
+		for (Character character : now.characters) {
+			if (character.player_id != id)
+				continue;
+			Operation operation = operations[character.id & 1];
+			if (operation.magic && (character.pos & 1) == 1) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	HashSet<Long> used = new HashSet<Long>();
+
+	HashMap<Long, Next> already = new HashMap<Long, Next>();
 
 	// @SuppressWarnings("unused")
 	Next dfs(State now, int depth, long a, long b) {
+		long stateHash = now.getHash();
+		if (already.containsKey(stateHash)) {
+			return already.get(stateHash);
+		}
 		Next best = new Next(a, operationList.get(0));
 
 		for (Operation[] allyOperations : operationList) {
@@ -100,7 +129,9 @@ class AI {
 				Parameter.println(next.value + " ");
 				debug = false;
 			}
-			if (best.value < next.value && (MAX_DEPTH != depth || best.value == Long.MIN_VALUE || !used.contains(tmp.getHash()))) {
+			if (best.value < next.value
+					&& (next.value > Long.MAX_VALUE / 4 || !putNotGridBomb(tmp, allyOperations, Parameter.MY_ID))
+					&& (MAX_DEPTH != depth || best.value == Long.MIN_VALUE || !used.contains(tmp.getHash()))) {
 				if (MAX_DEPTH == depth)
 					Parameter.println("update");
 				best = next;
@@ -113,6 +144,7 @@ class AI {
 			tmp.operations(best.operations, Parameter.MY_ID);
 			used.add(tmp.getHash());
 		}
+		already.put(stateHash, best);
 		return best;
 	}
 
@@ -147,18 +179,19 @@ class AI {
 			if (nowAllyDead > nowEnemyDead) {
 				return (Long.MIN_VALUE / 2) - Integer.MAX_VALUE;
 			}
-
+			boolean timeover = 1 <= (MAX_DEPTH - depth) && (System.nanoTime() - start) > 3000000000L;
 			if (res == 2) {
 				// どっちも詰んでない
-				if (depth == 0) {
+				if (depth == 0 || timeover) {
 					value = Math.min(value, tmp.calcValue());
 				} else {
 					hutuuList.add(tmp);
 				}
 			} else if (res == 1) {
 				// 相打ち
-				if (depth == 0 || (nowAllyDead > 0 && nowAllyDead == nowEnemyDead))
-					value = Math.min(value, tmp.calcFleeValue() + (Long.MIN_VALUE / 4));
+				if (depth == 0 || (nowAllyDead > 0 && nowAllyDead == nowEnemyDead) || timeover)
+					value = Math.min(value, tmp.calcFleeValue()
+							+ (State.time > 100000 ? (Long.MIN_VALUE / 4) : (Long.MAX_VALUE / 4)));
 				else
 					hutuuList.add(tmp);
 			} else if (res == 3) {
@@ -167,7 +200,7 @@ class AI {
 				flag = false;
 			} else if (res == -1) {
 				// 相手が詰んだ
-				if (depth == 0 || nowEnemyDead > 0) {
+				if (depth == 0 || nowEnemyDead > 0 || timeover) {
 					value = Math.min(value, tmp.calcFleeValue() + (Long.MAX_VALUE / 2));
 				} else {
 					tumiList.add(tmp);
@@ -175,7 +208,7 @@ class AI {
 			}
 		}
 		if (!kati && aiuti) {
-			return (Long.MIN_VALUE / 4) - Integer.MAX_VALUE;
+			return (State.time > 100000 ? (Long.MIN_VALUE / 4) : (Long.MAX_VALUE / 4)) - Integer.MAX_VALUE;
 		}
 		if (flag) {
 			if (hutuuList.size() > 0) {

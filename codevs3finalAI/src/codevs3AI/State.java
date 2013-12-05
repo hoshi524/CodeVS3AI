@@ -20,6 +20,11 @@ class State {
 	final static int BURST_MAP_INIT = 1000;
 	final static int MAX_INT = Integer.MAX_VALUE / 0xfff;
 	final static int[] dirs = new int[] { 0, -1, 1, -Parameter.X, Parameter.X };
+	final static int[] mapPosition = new int[Parameter.XY];
+	static {
+		// 角は評価を下げておく
+		mapPosition[0] = mapPosition[1] = mapPosition[11] = mapPosition[12] = mapPosition[13] = mapPosition[25] = mapPosition[117] = mapPosition[129] = mapPosition[130] = mapPosition[131] = mapPosition[141] = mapPosition[142] = Integer.MIN_VALUE / 4;
+	}
 	static long time;
 	int turn;
 
@@ -86,8 +91,8 @@ class State {
 			sc.next();
 			int characters_num = sc.nextInt();
 			for (int i = 0; i < characters_num; i++) {
-				characters[i] = new Character(sc.nextInt(), sc.nextInt(), (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1),
-						sc.nextInt(), sc.nextInt());
+				characters[i] = new Character(sc.nextInt(), sc.nextInt(), (sc.nextInt() - 1) * Parameter.X
+						+ (sc.nextInt() - 1), sc.nextInt(), sc.nextInt());
 			}
 
 			int bomb_num = sc.nextInt();
@@ -165,16 +170,43 @@ class State {
 			}
 			Parameter.println();
 		}
-		if (Parameter.DEBUG) {
-			int pmap[] = calcMapPosition();
-			for (int y = 0; y < Parameter.Y; y++) {
-				for (int x = 0; x < Parameter.X; x++) {
-					Parameter.print(String.format("%11d", pmap[x + y * Parameter.X]));
+		liveMap = calcLiveMap();
+
+		if (turn >= 294) {
+			int tmpMap[] = new int[Parameter.XY];
+			System.arraycopy(map, 0, tmpMap, 0, Parameter.XY);
+			for (int q = 0; q < 3; q++) {
+				int dy[] = new int[] { 0, 1, 0, -1 };
+				int dx[] = new int[] { 1, 0, -1, 0 };
+				int x = -1, y = 0, i = 0, j = 1;
+				while (true) {
+					x += dx[i];
+					y += dy[i];
+					int pos = y * Parameter.X + x;
+					if (tmpMap[pos] != HARD_BLOCK) {
+						tmpMap[pos] = HARD_BLOCK;
+						mapPosition[pos] = (Integer.MIN_VALUE / 4);
+						break;
+					}
+					if (j > Parameter.X) {
+						// 無限ループ回避でとりあえず入れておく
+						// jがそこまで大きくならない可能性で実行されない？
+						System.err.println("error hard block");
+						break;
+					}
+					if (i == 0 && x == Parameter.X - j)
+						i = 1;
+					else if (i == 1 && y == Parameter.Y - j)
+						i = 2;
+					else if (i == 2 && x == j - 1)
+						i = 3;
+					else if (i == 3 && y == j) {
+						i = 0;
+						j++;
+					}
 				}
-				Parameter.println();
 			}
 		}
-		liveMap = calcLiveMap();
 	}
 
 	void step() {
@@ -354,72 +386,28 @@ class State {
 		return liveMap;
 	}
 
-	private int[] calcMapPosition() {
-		int mapPosition[] = new int[Parameter.XY];
-
-		// 角は評価を下げておく
-		mapPosition[0] = mapPosition[1] = mapPosition[11] = mapPosition[12] = mapPosition[13] = mapPosition[25] = mapPosition[117] = mapPosition[129] = mapPosition[130] = mapPosition[131] = mapPosition[141] = mapPosition[142] = -(Integer.MAX_VALUE >> 2);
-		if (turn >= 300) {
-			int tmpMap[] = new int[Parameter.XY];
-			System.arraycopy(map, 0, tmpMap, 0, Parameter.XY);
-			for (int q = 0; q < 6; q++) {
-				int dy[] = new int[] { 0, 1, 0, -1 };
-				int dx[] = new int[] { 1, 0, -1, 0 };
-				int x = -1, y = 0, i = 0, j = 1;
-				while (true) {
-					x += dx[i];
-					y += dy[i];
-					int pos = y * Parameter.X + x;
-					if (tmpMap[pos] != HARD_BLOCK) {
-						tmpMap[pos] = HARD_BLOCK;
-						mapPosition[pos] -= (Integer.MAX_VALUE >> 2);
-						break;
-					}
-					if (j > Parameter.X) {
-						// 無限ループ回避でとりあえず入れておく
-						// jがそこまで大きくならない可能性で実行されない？
-						System.err.println("error hard block");
-						break;
-					}
-					if (i == 0 && x == Parameter.X - j)
-						i = 1;
-					else if (i == 1 && y == Parameter.Y - j)
-						i = 2;
-					else if (i == 2 && x == j - 1)
-						i = 3;
-					else if (i == 3 && y == j) {
-						i = 0;
-						j++;
-					}
-				}
-			}
-		}
-
-		for (Character c : characters) {
-			int x2 = c.pos % Parameter.X, y2 = c.pos / Parameter.X;
-			for (int x = 0; x < Parameter.X; x++) {
-				for (int y = 0; y < Parameter.Y; y++) {
-					if (c.player_id == Parameter.MY_ID)
-						mapPosition[y * Parameter.X + x] -= Math.max((12 - Math.abs(x - x2) - Math.abs(y - y2)), 0) * 0xffffff;
-					else
-						mapPosition[y * Parameter.X + x] += (30 - Math.abs(x - x2) - Math.abs(y - y2)) * 0xff;
-
-				}
-			}
-		}
-
-		return mapPosition;
+	private final static int posLen(int p1, int p2) {
+		int x1 = p1 % Parameter.X, y1 = p1 / Parameter.X;
+		int x2 = p2 % Parameter.X, y2 = p2 / Parameter.X;
+		return Math.abs(x1 - x2) + Math.abs(y1 - y2);
 	}
 
 	long calcValue() {
-		int[] mapPosition = calcMapPosition();
-		long res = 0;
+		int p1, p2;
+		if (Parameter.MY_ID == 0) {
+			p1 = characters[0].pos;
+			p2 = characters[1].pos;
+		} else {
+			p1 = characters[2].pos;
+			p2 = characters[3].pos;
+		}
+		long res = -0xffffff * Math.max(0, 12 - posLen(p1, p2));
 		for (Character c : characters) {
 			if (c.player_id == Parameter.MY_ID)
-				res += (long) mapPosition[c.pos] + (burstMap[c.pos] - liveMap[c.pos]) + (long) c.bombCount * 0xfffffffL
+				res += mapPosition[c.pos] + (burstMap[c.pos] - liveMap[c.pos]) * 0xfL + c.bombCount * 0xfffffffL
 						+ (long) itemMap[c.pos];
 			else
-				res -= (long) (burstMap[c.pos] - liveMap[c.pos]) * 0xfffff;
+				res -= (burstMap[c.pos] - liveMap[c.pos]) * 0xffffL;
 		}
 		return res;
 	}
@@ -449,37 +437,39 @@ class State {
 		}
 
 		// 爆弾処理
-		int[] posBuf = new int[2], fireBuf = new int[2];
-		int baseDanger = enemyDanger(player_id);
-		Arrays.fill(posBuf, -1);
-		for (Character character : characters) {
-			Operation operation = operations[character.id & 1];
-			if (character.player_id != player_id || !operation.magic)
-				continue;
-			if (fieldBombCount[character.id] >= character.bomb) {
-				// Parameter.println("魔不");
-				return 0;
-			}
-			if (map[character.pos] == BOMB) {
-				// Parameter.println("魔重複");
-				return 0;
-			}
-			posBuf[character.id & 1] = character.pos;
-			fireBuf[character.id & 1] = character.fire;
+		if (operations[0].magic || operations[1].magic) {
+			int[] posBuf = new int[2], fireBuf = new int[2];
+			int baseDanger = enemyDanger(player_id);
+			Arrays.fill(posBuf, -1);
+			for (Character character : characters) {
+				Operation operation = operations[character.id & 1];
+				if (character.player_id != player_id || !operation.magic)
+					continue;
+				if (fieldBombCount[character.id] >= character.bomb) {
+					// Parameter.println("魔不");
+					return 0;
+				}
+				if (map[character.pos] == BOMB) {
+					// Parameter.println("魔重複");
+					return 0;
+				}
+				posBuf[character.id & 1] = character.pos;
+				fireBuf[character.id & 1] = character.fire;
 
-			bombList.add(new Bomb(character.id, character.pos, operation.burstTime, character.fire));
-			map[character.pos] = BOMB;
-			character.bombCount++;
-			fieldBombCount[character.id]++;
-			nowPutBomb.add(character.pos);
-		}
-		if (!softBlockBomb(posBuf, fireBuf)) {
-			calcBurstMap();
-			int danger = enemyDanger(player_id);
-			if (baseDanger >= danger) {
-				// System.out.println(baseDanger + " >= " + danger);
-				// Parameter.println("魔無効");
-				return -2;
+				bombList.add(new Bomb(character.id, character.pos, operation.burstTime, character.fire));
+				map[character.pos] = BOMB;
+				character.bombCount++;
+				fieldBombCount[character.id]++;
+				nowPutBomb.add(character.pos);
+			}
+			if (!softBlockBomb(posBuf, fireBuf)) {
+				calcBurstMap();
+				int danger = enemyDanger(player_id);
+				if (baseDanger >= danger) {
+					// System.out.println(baseDanger + " >= " + danger);
+					// Parameter.println("魔無効");
+					return -2;
+				}
 			}
 		}
 
@@ -504,10 +494,16 @@ class State {
 				boolean tmpSoftBlockClash[] = new boolean[Parameter.XY];
 				for (Bomb bomb : bombList) {
 					if (bomb.limitTime == liveDepth && !usedBomb[bomb.pos]) {
+						Queue<Bomb> que = new ArrayDeque<Bomb>();
+						for (Bomb bomb2 : bombList) {
+							if (!bomb.equals(bomb2) && bomb.pos == bomb2.pos && !usedBomb[bomb2.pos]) {
+								bombCount++;
+								que.add(bomb2);
+							}
+						}
 						usedBomb[bomb.pos] = true;
 						bombCount++;
 						burstMemo[bomb.pos] |= 1 << liveDepth;
-						Queue<Bomb> que = new ArrayDeque<Bomb>();
 						que.add(bomb);
 						while (!que.isEmpty()) {
 							Bomb bb = que.poll();
@@ -546,17 +542,6 @@ class State {
 				}
 			}
 
-			/*if (AI.debug)
-				for (int i = 0; i < liveDepth; i++) {
-					for (int y = 0; y < Parameter.Y; y++) {
-						for (int x = 0; x < Parameter.X; x++) {
-							Parameter
-									.print(((burstMemo[x + y * Parameter.X] | blockMemo[x + y * Parameter.X]) & (1 << i)) != 0 ? "■" : "□");
-						}
-						Parameter.println();
-					}
-					Parameter.println();
-				}*/
 			int deadTime[] = new int[Parameter.CHARACTER_NUM];
 			Arrays.fill(deadTime, Integer.MAX_VALUE);
 			for (int i = 0; i < Parameter.CHARACTER_NUM; i++) {
@@ -599,14 +584,6 @@ class State {
 		return 2;
 	}
 
-	// 結果として、移動しない場合は爆弾の上にいられるようにすると成績が下がった
-	// 利点:爆弾の上に留まらないと死ぬケースで生き残れる
-	// 利点:ルールに忠実であるべきで、爆弾の上に留まるのが良くない行為なら、評価関数で評価を下げるべき
-	// 利点:重複するが相手が詰んだと判定しても、生き残る可能性がある
-	// なぜ成績が下がったのか
-	// 欠点:爆弾の上に留まるという行為が危険が高く最善であることが少ない(全くないとかなら留まれないことにして良い)
-	// 欠点:計算量が増える
-	// 欠点：予選では偶然に爆弾の上に留まるAIがいない(たぶんいない)から、留まらないように判定した方が良い結果が得られる
 	private int liveDFS(int pos, int depth, int memo[][], int burstMemo[], int blockMemo[], int liveDepth) {
 		if (memo[depth][pos] != -1)
 			return memo[depth][pos];
@@ -634,7 +611,7 @@ class State {
 
 			int enemyMap[] = new int[Parameter.XY];
 			ArrayDeque<Integer> que = new ArrayDeque<Integer>();
-			enemyMap[c.pos] = 5;
+			enemyMap[c.pos] = 4;
 			que.add(c.pos);
 			while (!que.isEmpty()) {
 				int now_pos = que.poll();
@@ -677,7 +654,7 @@ class State {
 					next_pos += d;
 					if (!isin(d, next_pos) || map[next_pos] == HARD_BLOCK)
 						break;
-					if (burstMap[next_pos] == BURST_MAP_INIT && map[next_pos] == SOFT_BLOCK) {
+					if (map[next_pos] == SOFT_BLOCK) {
 						res |= 1 << i;
 						break base;
 					}

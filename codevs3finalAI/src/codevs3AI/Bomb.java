@@ -17,7 +17,7 @@ class Bomb implements Comparable<Bomb> {
 		this.fire = fire;
 	}
 
-	String toString(int x) {
+	public String toString() {
 		return pos + " " + limitTime + " " + fire;
 	}
 
