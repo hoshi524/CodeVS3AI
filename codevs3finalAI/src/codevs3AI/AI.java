@@ -1,7 +1,6 @@
 package codevs3AI;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Scanner;
 
@@ -96,56 +95,25 @@ class AI {
 	Next dfs(State now, int depth, long a, long b) {
 		Next best = new Next(a, operationList.get(0));
 
-		class SortList implements Comparable<SortList> {
-			final int result;
-			final State now;
-			final Operation[] o;
-
-			public SortList(int result, State now, Operation[] o) {
-				this.result = result;
-				this.now = now;
-				this.o = o;
-			}
-
-			@Override
-			public int compareTo(SortList param) {
-				return param.result - result;
-			}
-		}
-		ArrayList<SortList> nodes = new ArrayList<SortList>();
-		final long resultMax[] = new long[] { -1,//ここは参照しないはず
-				Long.MIN_VALUE / 8, //相打ちの時
-				Long.MAX_VALUE / 4, // 正常時
-				Long.MAX_VALUE, // 相手詰み時
-		};
 		for (Operation[] allyOperations : operationList) {
 			State tmp = new State(now);
 			int res = tmp.operations(allyOperations, Parameter.MY_ID);
 			if (res == 0 || res == -1 || res == -2)
 				continue;
-			nodes.add(new SortList(res, tmp, allyOperations));
-		}
-		Collections.sort(nodes);
-		for (SortList node : nodes) {
-			if (resultMax[node.result] < best.value)
-				break;
-			Next next = new Next(enemyOperation(node.now, depth, best.value, b), node.o);
-			for (Operation o : node.o)
+			Next next = new Next(enemyOperation(tmp, depth, best.value, b), allyOperations);
+			for (Operation o : allyOperations)
 				if (o.equals(NONE))
 					next.value -= 0xffffff;
 			if (Parameter.DEBUG) {
 				debug = MAX_DEPTH == depth;
-				State tmp = new State(now);
-				tmp.operations(node.o, Parameter.MY_ID);
 				Parameter.print(depth + " ");
-				for (Operation o : node.o)
+				for (Operation o : allyOperations)
 					Parameter.print(o.toString() + " ");
-				Parameter.println(next.value + " " + node.result);
+				Parameter.println(next.value + " ");
 				debug = false;
 			}
-			if (best.value < next.value
-					&& (next.value > Long.MAX_VALUE / 4 || !putNotGridBomb(node.now, node.o, Parameter.MY_ID))
-					&& (MAX_DEPTH != depth || best.value == Long.MIN_VALUE || !used.contains(node.now.getHash()))) {
+			if (best.value < next.value && (next.value > Long.MAX_VALUE / 4 || !putNotGridBomb(tmp, allyOperations, Parameter.MY_ID))
+					&& (MAX_DEPTH != depth || best.value == Long.MIN_VALUE || !used.contains(tmp.getHash()))) {
 				if (MAX_DEPTH == depth)
 					Parameter.println("update");
 				best = next;

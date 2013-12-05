@@ -85,8 +85,8 @@ class State {
 			sc.next();
 			int characters_num = sc.nextInt();
 			for (int i = 0; i < characters_num; i++) {
-				characters[i] = new Character(sc.nextInt(), sc.nextInt(), (sc.nextInt() - 1) * Parameter.X
-						+ (sc.nextInt() - 1), sc.nextInt(), sc.nextInt());
+				characters[i] = new Character(sc.nextInt(), sc.nextInt(), (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1),
+						sc.nextInt(), sc.nextInt());
 			}
 
 			int bomb_num = sc.nextInt();
@@ -481,7 +481,10 @@ class State {
 		}
 
 		{// liveDFS
-			int memo[][] = new int[Parameter.maxLiveDepth][Parameter.XY];
+			int memo[][] = new int[Parameter.maxLiveDepth + 1][Parameter.XY];
+			for (int i = 0; i < Parameter.maxLiveDepth; i++) {
+				Arrays.fill(memo[i], -1);
+			}
 			int burstMemo[] = new int[Parameter.XY];
 			int blockMemo[] = new int[Parameter.XY];
 
@@ -552,54 +555,39 @@ class State {
 					Parameter.println();
 				}*/
 
-			int allyDead = 0, enemyDead = 0;
-			int nowAllyDead = 0, nowEnemyDead = 0;
-			for (Character character : characters) {
-				if (character.player_id == player_id
-						&& ((burstMemo[character.pos] & 1) != 0 || !liveDFS(character.pos, 0, memo, burstMemo,
-								blockMemo, liveDepth - 1))) {
-					if ((burstMemo[character.pos] & 1) != 0)
-						nowAllyDead++;
-					allyDead++;
-				} else if (character.player_id != player_id
-						&& ((burstMemo[character.pos] & 1) != 0 || !liveDFS(character.pos, 0, memo, burstMemo,
-								blockMemo, liveDepth - 1))) {
-					if ((burstMemo[character.pos] & 1) != 0)
-						nowEnemyDead++;
-					enemyDead++;
+			int deadTime[] = new int[Parameter.CHARACTER_NUM];
+			Arrays.fill(deadTime, Integer.MAX_VALUE);
+			for (int i = 0; i < Parameter.CHARACTER_NUM; i++) {
+				Character character = this.characters[i];
+				if ((burstMemo[character.pos] & 1) != 0)
+					deadTime[i] = 0;
+				else
+					deadTime[i] = liveDFS(character.pos, 0, memo, burstMemo, blockMemo, liveDepth);
+			}
+			int minDeadTime = liveDepth;
+			for (int time : deadTime)
+				minDeadTime = Math.min(minDeadTime, time);
+			if (minDeadTime < liveDepth) {
+				int allyDead = 0, enemyDead = 0;
+				for (int i = 0; i < Parameter.CHARACTER_NUM; i++)
+					if (deadTime[i] == minDeadTime)
+						if (characters[i].player_id == player_id)
+							allyDead++;
+						else
+							enemyDead++;
+				if (allyDead > 0 && allyDead == enemyDead) {
+					// Parameter.println("相打");
+					return 1;
+				}
+				if (allyDead > enemyDead) {
+					// Parameter.println("自詰");
+					return -1;
+				}
+				if (allyDead < enemyDead) {
+					// Parameter.println("相詰");
+					return 3;
 				}
 			}
-			if (nowAllyDead > 0 && nowAllyDead == nowEnemyDead) {
-				return 1;
-			}
-			if (nowAllyDead > nowEnemyDead) {
-				return -1;
-			}
-			if (nowAllyDead < nowEnemyDead) {
-				return 3;
-			}
-
-			if (allyDead > 0 && allyDead == enemyDead) {
-				// Parameter.println("相打");
-				return 1;
-			}
-			if (allyDead > enemyDead) {
-				// Parameter.println("自詰");
-				return -1;
-			}
-			if (allyDead < enemyDead) {
-				// Parameter.println("相詰");
-				return 3;
-			}
-			/*for (Character character : characters) {
-				if (character.player_id != player_id)
-					continue;
-				Operation operation = operations[character.id & 1];
-				if (operation.magic && (character.pos & 1) == 1) {
-					// 相手が詰まない状態では格子以外の位置に爆弾を置かない
-					return 0;
-				}
-			}*/
 		}
 
 		// Parameter.println("正常");
@@ -614,23 +602,23 @@ class State {
 	// 欠点:爆弾の上に留まるという行為が危険が高く最善であることが少ない(全くないとかなら留まれないことにして良い)
 	// 欠点:計算量が増える
 	// 欠点：予選では偶然に爆弾の上に留まるAIがいない(たぶんいない)から、留まらないように判定した方が良い結果が得られる
-	private boolean liveDFS(int pos, int depth, int memo[][], int burstMemo[], int blockMemo[], int liveDepth) {
-		if (memo[depth][pos] != 0)
-			return memo[depth][pos] == 1;
-		if (depth >= liveDepth)
-			return true;
+	private int liveDFS(int pos, int depth, int memo[][], int burstMemo[], int blockMemo[], int liveDepth) {
+		if (memo[depth][pos] != -1)
+			return memo[depth][pos];
+		if (depth == liveDepth)
+			return memo[depth][pos] = liveDepth;
 		int bit = 1 << (depth + 1);
+		int res = depth;
 		for (int d : dirs) {
 			int next_pos = pos + d;
 			if (!isin(d, next_pos) || (burstMemo[next_pos] & bit) != 0 || ((blockMemo[next_pos] & bit) != 0))
 				continue;
-			if (liveDFS(next_pos, depth + 1, memo, burstMemo, blockMemo, liveDepth)) {
-				memo[depth][pos] = 1;
-				return true;
+			res = Math.max(res, liveDFS(next_pos, depth + 1, memo, burstMemo, blockMemo, liveDepth));
+			if (res == liveDepth) {
+				return memo[depth][pos] = res;
 			}
 		}
-		memo[depth][pos] = -1;
-		return false;
+		return memo[depth][pos] = res;
 	}
 
 	private int enemyDanger(int player_ip) {
