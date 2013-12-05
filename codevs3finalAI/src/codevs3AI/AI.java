@@ -74,7 +74,7 @@ class AI {
 		} else if (State.time < 100000) {
 			MAX_DEPTH = 1;
 		} else {
-			MAX_DEPTH = 0;
+			MAX_DEPTH = 2;
 		}
 
 		next = dfs(state, MAX_DEPTH, Long.MIN_VALUE + Integer.MAX_VALUE, Long.MAX_VALUE - Integer.MAX_VALUE);
