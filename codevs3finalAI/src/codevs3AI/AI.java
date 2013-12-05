@@ -7,9 +7,10 @@ import java.util.Scanner;
 class AI {
 
 	public static void main(String[] args) {
+		@SuppressWarnings("resource")
 		Scanner sc = new Scanner(System.in);
 		AI ai = new AI();
-		System.out.println("hoshi524");
+		System.out.println("TEAM-LAB");
 		while (true) {
 			StringBuilder sb = new StringBuilder();
 			while (true) {
@@ -60,25 +61,13 @@ class AI {
 		}
 	}
 
-	boolean putNotGridBomb(State now, Operation operations[], int id) {
-		for (Character character : now.characters) {
-			if (character.player_id != id)
-				continue;
-			Operation operation = operations[character.id & 1];
-			if (operation.magic && (character.pos & 1) == 1) {
-				return true;
-			}
-		}
-		return false;
-	}
-
 	String think(String input) {
 		State state = new State(input);
 		Next next;
 		if (State.time < 50000)
-			next = dfs(state, 0, Long.MIN_VALUE, Long.MAX_VALUE);
+			next = dfs(state, 0, Long.MIN_VALUE + Integer.MAX_VALUE, Long.MAX_VALUE - Integer.MAX_VALUE);
 		else
-			next = dfs(state, MAX_DEPTH, Long.MIN_VALUE, Long.MAX_VALUE);
+			next = dfs(state, MAX_DEPTH, Long.MIN_VALUE + Integer.MAX_VALUE, Long.MAX_VALUE - Integer.MAX_VALUE);
 		System.err.println(state.turn + " : " + next.value);
 
 		StringBuilder sb = new StringBuilder();
@@ -111,8 +100,7 @@ class AI {
 				Parameter.println(next.value + " ");
 				debug = false;
 			}
-			if (best.value < next.value && (next.value > Long.MAX_VALUE / 4 || !putNotGridBomb(tmp, allyOperations, Parameter.MY_ID))
-					&& (MAX_DEPTH != depth || best.value == Long.MIN_VALUE || !used.contains(tmp.getHash()))) {
+			if (best.value < next.value && (MAX_DEPTH != depth || best.value == Long.MIN_VALUE || !used.contains(tmp.getHash()))) {
 				if (MAX_DEPTH == depth)
 					Parameter.println("update");
 				best = next;
@@ -156,7 +144,7 @@ class AI {
 						nowEnemyDead++;
 			aiuti &= nowAllyDead > 0 && nowEnemyDead >= nowAllyDead;
 			kati &= nowEnemyDead > nowAllyDead;
-			if (nowAllyDead > 0 && nowEnemyDead == 0) {
+			if (nowAllyDead > nowEnemyDead) {
 				return (Long.MIN_VALUE / 2) - Integer.MAX_VALUE;
 			}
 
@@ -169,7 +157,7 @@ class AI {
 				}
 			} else if (res == 1) {
 				// 相打ち
-				if (depth == 0)
+				if (depth == 0 || (nowAllyDead > 0 && nowAllyDead == nowEnemyDead))
 					value = Math.min(value, tmp.calcFleeValue() + (Long.MIN_VALUE / 4));
 				else
 					hutuuList.add(tmp);
@@ -193,14 +181,16 @@ class AI {
 			if (hutuuList.size() > 0) {
 				for (State state : hutuuList) {
 					value = Math.min(value, dfs(state, depth - 1, a, value).value);
-					if (a >= value)
+					if (a >= value) {
 						return value;
+					}
 				}
 			} else if (tumiList.size() > 0) {
 				for (State state : tumiList) {
 					value = Math.min(value, dfs(state, depth - 1, a, value).value);
-					if (a >= value)
+					if (a >= value) {
 						return value;
+					}
 				}
 			}
 		}

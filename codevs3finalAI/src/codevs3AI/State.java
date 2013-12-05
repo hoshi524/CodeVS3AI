@@ -572,22 +572,24 @@ class State {
 			if (minDeadTime < liveDepth) {
 				int allyDead = 0, enemyDead = 0;
 				for (int i = 0; i < Parameter.CHARACTER_NUM; i++)
-					if (deadTime[i] == minDeadTime)
+					if (deadTime[i] == minDeadTime) {
+						Parameter.println("dead id: " + characters[i].id);
 						if (characters[i].player_id == player_id)
 							allyDead++;
 						else
 							enemyDead++;
-				// System.err.println(minDeadTime + " " + liveDepth + " " + allyDead + " " + enemyDead);
+					}
+				Parameter.println(player_id + " " + minDeadTime + " " + liveDepth + " " + allyDead + " " + enemyDead);
 				if (allyDead > 0 && allyDead == enemyDead) {
-					// Parameter.println("相打");
+					Parameter.println("相打");
 					return 1;
 				}
 				if (allyDead > enemyDead) {
-					// Parameter.println("自詰");
+					Parameter.println("自詰");
 					return -1;
 				}
 				if (allyDead < enemyDead) {
-					// Parameter.println("相詰");
+					Parameter.println("相詰");
 					return 3;
 				}
 			}
@@ -614,7 +616,7 @@ class State {
 		int res = depth;
 		for (int d : dirs) {
 			int next_pos = pos + d;
-			if (!isin(d, next_pos) || (burstMemo[next_pos] & bit) != 0 || ((blockMemo[next_pos] & bit) != 0))
+			if (!isin(d, next_pos) || (burstMemo[next_pos] & bit) != 0 || ((blockMemo[next_pos] & bit) != 0 && d != 0))
 				continue;
 			res = Math.max(res, liveDFS(next_pos, depth + 1, memo, burstMemo, blockMemo, liveDepth));
 			if (res == liveDepth) {
@@ -640,7 +642,7 @@ class State {
 					int next_pos = now_pos + d;
 					if (isin(d, next_pos) && map[next_pos] <= BLANK && enemyMap[next_pos] < enemyMap[now_pos]) {
 						enemyMap[next_pos] = enemyMap[now_pos] - 1;
-						if (enemyMap[next_pos] > 1) {
+						if (enemyMap[next_pos] > 2) {
 							que.add(next_pos);
 						}
 					}
