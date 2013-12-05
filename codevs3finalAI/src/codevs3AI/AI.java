@@ -7,7 +7,6 @@ import java.util.Scanner;
 class AI {
 
 	public static void main(String[] args) {
-		@SuppressWarnings("resource")
 		Scanner sc = new Scanner(System.in);
 		AI ai = new AI();
 		System.out.println("hoshi524");

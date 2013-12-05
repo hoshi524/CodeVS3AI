@@ -26,6 +26,7 @@ class State {
 	int map[] = new int[Parameter.XY];
 	int burstMap[] = new int[Parameter.XY];
 	static int itemMap[] = new int[Parameter.XY];
+	static int liveMap[];
 
 	Character characters[] = new Character[Parameter.CHARACTER_NUM];
 	int fieldBombCount[] = new int[Parameter.CHARACTER_NUM];
@@ -141,7 +142,10 @@ class State {
 					boolean flag = true;
 					for (Character c : characters) {
 						if (c.pos == x + y * Parameter.X) {
-							Parameter.print("    p");
+							if (c.player_id == Parameter.MY_ID)
+								Parameter.print("   ap");
+							else
+								Parameter.print("   ep");
 							flag = false;
 							break;
 						}
@@ -170,6 +174,7 @@ class State {
 				Parameter.println();
 			}
 		}
+		liveMap = calcLiveMap();
 	}
 
 	void step() {
@@ -408,7 +413,6 @@ class State {
 
 	long calcValue() {
 		int[] mapPosition = calcMapPosition();
-		int[] liveMap = calcLiveMap();
 		long res = 0;
 		for (Character c : characters) {
 			if (c.player_id == Parameter.MY_ID)
@@ -421,7 +425,6 @@ class State {
 	}
 
 	long calcFleeValue() {
-		int[] liveMap = calcLiveMap();
 		long res = 0;
 		for (Character c : characters) {
 			if (c.player_id == Parameter.MY_ID)
@@ -554,7 +557,6 @@ class State {
 					}
 					Parameter.println();
 				}*/
-
 			int deadTime[] = new int[Parameter.CHARACTER_NUM];
 			Arrays.fill(deadTime, Integer.MAX_VALUE);
 			for (int i = 0; i < Parameter.CHARACTER_NUM; i++) {
@@ -575,6 +577,7 @@ class State {
 							allyDead++;
 						else
 							enemyDead++;
+				// System.err.println(minDeadTime + " " + liveDepth + " " + allyDead + " " + enemyDead);
 				if (allyDead > 0 && allyDead == enemyDead) {
 					// Parameter.println("相打");
 					return 1;
