@@ -19,6 +19,6 @@ class Character {
 		this.pos = c.pos;
 		this.fire = c.fire;
 		this.bomb = c.bomb;
-		this.bombCount = c.bombCount * 2;
+		this.bombCount = c.bombCount;
 	}
 }

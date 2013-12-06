@@ -114,7 +114,7 @@ class AI {
 
 		for (Operation[] allyOperations : operationList) {
 			State tmp = new State(now);
-			int res = tmp.operations(allyOperations, Parameter.MY_ID);
+			int res = tmp.operations(allyOperations, Parameter.MY_ID, depth);
 			if (res == 0 || res == -1 || res == -2)
 				continue;
 			Next next = new Next(enemyOperation(tmp, depth, best.value, b), allyOperations);
@@ -129,8 +129,7 @@ class AI {
 				Parameter.println(next.value + " ");
 				debug = false;
 			}
-			if (best.value < next.value
-					&& (next.value > Long.MAX_VALUE / 4 || !putNotGridBomb(tmp, allyOperations, Parameter.MY_ID))
+			if (best.value < next.value && (next.value > Long.MAX_VALUE / 4 || !putNotGridBomb(tmp, allyOperations, Parameter.MY_ID))
 					&& (MAX_DEPTH != depth || best.value == Long.MIN_VALUE || !used.contains(tmp.getHash()))) {
 				if (MAX_DEPTH == depth)
 					Parameter.println("update");
@@ -141,7 +140,7 @@ class AI {
 		}
 		if (MAX_DEPTH == depth) {
 			State tmp = new State(now);
-			tmp.operations(best.operations, Parameter.MY_ID);
+			tmp.operations(best.operations, Parameter.MY_ID, depth);
 			used.add(tmp.getHash());
 		}
 		already.put(stateHash, best);
@@ -159,7 +158,7 @@ class AI {
 		for (Operation[] enemyOperations : operationList) {
 			State tmp = new State(now);
 
-			int res = tmp.operations(enemyOperations, Parameter.ENEMY_ID);
+			int res = tmp.operations(enemyOperations, Parameter.ENEMY_ID, depth);
 			if (res == 0 || res == -2) {
 				// 不正な行動
 				// 魔法が有効じゃない
@@ -179,7 +178,7 @@ class AI {
 			if (nowAllyDead > nowEnemyDead) {
 				return (Long.MIN_VALUE / 2) - Integer.MAX_VALUE;
 			}
-			boolean timeover = 1 <= (MAX_DEPTH - depth) && (System.nanoTime() - start) > 3000000000L;
+			boolean timeover = 1 <= (MAX_DEPTH - depth) && (System.nanoTime() - start) > 2000000000L;
 			if (res == 2) {
 				// どっちも詰んでない
 				if (depth == 0 || timeover) {
@@ -190,8 +189,7 @@ class AI {
 			} else if (res == 1) {
 				// 相打ち
 				if (depth == 0 || (nowAllyDead > 0 && nowAllyDead == nowEnemyDead) || timeover)
-					value = Math.min(value, tmp.calcFleeValue()
-							+ (State.time > 100000 ? (Long.MIN_VALUE / 4) : (Long.MAX_VALUE / 4)));
+					value = Math.min(value, tmp.calcFleeValue() + (State.time > 100000 ? (Long.MIN_VALUE / 4) : (Long.MAX_VALUE / 4)));
 				else
 					hutuuList.add(tmp);
 			} else if (res == 3) {

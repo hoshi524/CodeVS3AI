@@ -31,9 +31,7 @@ class State {
 	int turn;
 
 	int map[] = new int[Parameter.XY];
-	int burstMap[] = new int[Parameter.XY];
 	static int itemMap[] = new int[Parameter.XY];
-	static int liveMap[];
 
 	Character characters[] = new Character[Parameter.CHARACTER_NUM];
 	int fieldBombCount[] = new int[Parameter.CHARACTER_NUM];
@@ -49,7 +47,6 @@ class State {
 	State(State s) {
 		this.turn = s.turn;
 		System.arraycopy(s.map, 0, map, 0, Parameter.XY);
-		System.arraycopy(s.burstMap, 0, burstMap, 0, Parameter.XY);
 		System.arraycopy(s.fieldBombCount, 0, fieldBombCount, 0, Parameter.CHARACTER_NUM);
 
 		for (int i = 0; i < Parameter.CHARACTER_NUM; i++) {
@@ -93,8 +90,8 @@ class State {
 			sc.next();
 			int characters_num = sc.nextInt();
 			for (int i = 0; i < characters_num; i++) {
-				characters[i] = new Character(sc.nextInt(), sc.nextInt(), (sc.nextInt() - 1) * Parameter.X
-						+ (sc.nextInt() - 1), sc.nextInt(), sc.nextInt());
+				characters[i] = new Character(sc.nextInt(), sc.nextInt(), (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1),
+						sc.nextInt(), sc.nextInt());
 			}
 
 			int bomb_num = sc.nextInt();
@@ -164,15 +161,16 @@ class State {
 			}
 		}
 
-		calcBurstMap();
-		Parameter.println("burstMap");
-		for (int y = 0; y < Parameter.Y; y++) {
-			for (int x = 0; x < Parameter.X; x++) {
-				Parameter.print(String.format("%5d", burstMap[x + y * Parameter.X]));
+		if (Parameter.DEBUG) {
+			int burstMap[] = calcBurstMap();
+			Parameter.println("burstMap");
+			for (int y = 0; y < Parameter.Y; y++) {
+				for (int x = 0; x < Parameter.X; x++) {
+					Parameter.print(String.format("%5d", burstMap[x + y * Parameter.X]));
+				}
+				Parameter.println();
 			}
-			Parameter.println();
 		}
-		liveMap = calcLiveMap();
 
 		if (turn >= 294) {
 			int tmpMap[] = new int[Parameter.XY];
@@ -326,10 +324,10 @@ class State {
 			}
 		}
 		bombList = next_bl;
-		calcBurstMap();
 	}
 
-	private void calcBurstMap() {
+	private int[] calcBurstMap() {
+		int burstMap[] = new int[Parameter.XY];
 		Arrays.fill(burstMap, BURST_MAP_INIT);
 		int size = bombList.size();
 		boolean use[] = new boolean[size];
@@ -368,31 +366,7 @@ class State {
 				}
 			}
 		}
-	}
-
-	private int[] calcLiveMap() {
-		int liveMap[] = new int[Parameter.XY];
-		Arrays.fill(liveMap, MAX_INT);
-
-		for (int pos = 0; pos < Parameter.XY; pos++) {
-			if (map[pos] <= BLANK && burstMap[pos] == BURST_MAP_INIT) {
-				liveMap[pos] = 0;
-			}
-		}
-
-		for (int i = 0; i < 20; i++) {
-			for (int pos = 0; pos < Parameter.XY; pos++) {
-				if (liveMap[pos] == i && map[pos] <= BLANK) {
-					for (int dir : dirs) {
-						int next_pos = pos + dir;
-						if (isin(dir, next_pos) && map[next_pos] <= BOMB && liveMap[pos] < liveMap[next_pos]) {
-							liveMap[next_pos] = liveMap[pos] + 1;
-						}
-					}
-				}
-			}
-		}
-		return liveMap;
+		return burstMap;
 	}
 
 	private final static int posLen(int p1, int p2) {
@@ -403,18 +377,17 @@ class State {
 
 	long calcValue() {
 		Character c1 = characters[ac1], c2 = characters[ac2];
-		return -0xffffff * Math.max(0, 10 - posLen(c1.pos, c2.pos)) - allyDanger + enemyDanger * 2
-				+ (long) mapPosition[c1.pos] + c1.bombCount * 0xffffffL + (long) itemMap[c1.pos]
-				+ (long) mapPosition[c2.pos] + c2.bombCount * 0xffffffL + (long) itemMap[c2.pos];
+		return -0xffff * Math.max(0, 10 - posLen(c1.pos, c2.pos)) - allyDanger + enemyDanger * 2 + (long) mapPosition[c1.pos]
+				+ c1.bombCount * 0xfffffffL + (long) itemMap[c1.pos] + (long) mapPosition[c2.pos] + c2.bombCount * 0xfffffffL
+				+ (long) itemMap[c2.pos];
 	}
 
 	long calcFleeValue() {
 		Character c1 = characters[ac1], c2 = characters[ac2];
-		return -allyDanger + (c1.bombCount == 0 ? 10 : c1.bombCount) * 0xfffff
-				+ (c2.bombCount == 0 ? 10 : c2.bombCount) * 0xfffff;
+		return -allyDanger + (c1.bombCount == 0 ? 10 : c1.bombCount) * 0xfffff + (c2.bombCount == 0 ? 10 : c2.bombCount) * 0xfffff;
 	}
 
-	int operations(Operation[] operations, int player_id) {
+	int operations(Operation[] operations, int player_id, int depth) {
 		// 移動処理
 		for (Character character : characters) {
 			if (character.player_id != player_id)
@@ -429,8 +402,8 @@ class State {
 			character.pos = next_pos;
 		}
 
-		int now_danger;
 		// 爆弾処理
+		int now_danger;
 		if (operations[0].magic || operations[1].magic) {
 			int[] posBuf = new int[2], fireBuf = new int[2];
 			int baseDanger = enemyDanger(player_id);
@@ -452,14 +425,13 @@ class State {
 
 				bombList.add(new Bomb(character.id, character.pos, operation.burstTime, character.fire));
 				map[character.pos] = BOMB;
-				character.bombCount++;
+				character.bombCount |= 1 << depth;
 				fieldBombCount[character.id]++;
 				nowPutBomb.add(character.pos);
 			}
 			now_danger = enemyDanger(player_id);
 			if (!softBlockBomb(posBuf, fireBuf)) {
 				if (baseDanger >= now_danger) {
-					// System.out.println(baseDanger + " >= " + danger);
 					// Parameter.println("魔無効");
 					return -2;
 				}
@@ -603,7 +575,7 @@ class State {
 	}
 
 	private int enemyDanger(int player_ip) {
-		calcBurstMap();
+		int burstMap[] = calcBurstMap();
 		int res = 0;
 		for (Character c : characters) {
 			if (c.player_id == player_ip)
@@ -619,7 +591,7 @@ class State {
 					int next_pos = now_pos + d;
 					if (isin(d, next_pos) && map[next_pos] <= BLANK && enemyMap[next_pos] < enemyMap[now_pos]) {
 						enemyMap[next_pos] = enemyMap[now_pos] - 1;
-						if (enemyMap[next_pos] > 2) {
+						if (enemyMap[next_pos] > 1) {
 							que.add(next_pos);
 						}
 					}
@@ -628,9 +600,7 @@ class State {
 			int enemyDanger = 0;
 			for (int p = 0; p < Parameter.XY; p++) {
 				if (enemyMap[p] > 0)
-					enemyDanger -= 0xffff;
-			}
-			for (int p = 0; p < Parameter.XY; p++) {
+					enemyDanger -= 0xfff;
 				enemyDanger += enemyMap[p] * Math.max(10 - burstMap[p], 0);
 			}
 			res += enemyDanger;
@@ -665,6 +635,7 @@ class State {
 	}
 
 	public long getHash() {
+		int burstMap[] = calcBurstMap();
 		long res = 0;
 		for (int pos = 0; pos < Parameter.XY; pos++) {
 			res ^= Hash.hashMap[Math.max(0, map[pos] - 2) * Parameter.XY + pos];
