@@ -403,9 +403,9 @@ class State {
 
 	long calcValue() {
 		Character c1 = characters[ac1], c2 = characters[ac2];
-		return -0xffffff * Math.max(0, 10 - posLen(c1.pos, c2.pos)) - allyDanger + enemyDanger
-				+ (long) mapPosition[c1.pos] + c1.bombCount * 0xffffffffL + (long) itemMap[c1.pos]
-				+ (long) mapPosition[c2.pos] + c2.bombCount * 0xffffffffL + (long) itemMap[c2.pos];
+		return -0xffffff * Math.max(0, 10 - posLen(c1.pos, c2.pos)) - allyDanger + enemyDanger * 2
+				+ (long) mapPosition[c1.pos] + c1.bombCount * 0xffffffL + (long) itemMap[c1.pos]
+				+ (long) mapPosition[c2.pos] + c2.bombCount * 0xffffffL + (long) itemMap[c2.pos];
 	}
 
 	long calcFleeValue() {
