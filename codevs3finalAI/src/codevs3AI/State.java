@@ -26,6 +26,8 @@ class State {
 		mapPosition[0] = mapPosition[1] = mapPosition[11] = mapPosition[12] = mapPosition[13] = mapPosition[25] = mapPosition[117] = mapPosition[129] = mapPosition[130] = mapPosition[131] = mapPosition[141] = mapPosition[142] = Integer.MIN_VALUE / 4;
 	}
 	static long time;
+	static int allyDanger, enemyDanger;
+	static int ac1, ac2;
 	int turn;
 
 	int map[] = new int[Parameter.XY];
@@ -206,6 +208,13 @@ class State {
 					}
 				}
 			}
+		}
+		if (Parameter.MY_ID == 0) {
+			ac1 = 0;
+			ac2 = 1;
+		} else {
+			ac1 = 2;
+			ac2 = 3;
 		}
 	}
 
@@ -393,32 +402,16 @@ class State {
 	}
 
 	long calcValue() {
-		int p1, p2;
-		if (Parameter.MY_ID == 0) {
-			p1 = characters[0].pos;
-			p2 = characters[1].pos;
-		} else {
-			p1 = characters[2].pos;
-			p2 = characters[3].pos;
-		}
-		long res = -0xffffff * Math.max(0, 12 - posLen(p1, p2));
-		for (Character c : characters) {
-			if (c.player_id == Parameter.MY_ID)
-				res += mapPosition[c.pos] + (burstMap[c.pos] - liveMap[c.pos]) * 0xfL + c.bombCount * 0xfffffffL
-						+ (long) itemMap[c.pos];
-			else
-				res -= (burstMap[c.pos] - liveMap[c.pos]) * 0xffffL;
-		}
-		return res;
+		Character c1 = characters[ac1], c2 = characters[ac2];
+		return -0xffffff * Math.max(0, 10 - posLen(c1.pos, c2.pos)) - allyDanger + enemyDanger
+				+ (long) mapPosition[c1.pos] + c1.bombCount * 0xffffffffL + (long) itemMap[c1.pos]
+				+ (long) mapPosition[c2.pos] + c2.bombCount * 0xffffffffL + (long) itemMap[c2.pos];
 	}
 
 	long calcFleeValue() {
-		long res = 0;
-		for (Character c : characters) {
-			if (c.player_id == Parameter.MY_ID)
-				res += (burstMap[c.pos] - liveMap[c.pos]) + (c.bombCount == 0 ? 10 : c.bombCount) * 0xfffff;
-		}
-		return res;
+		Character c1 = characters[ac1], c2 = characters[ac2];
+		return -allyDanger + (c1.bombCount == 0 ? 10 : c1.bombCount) * 0xfffff
+				+ (c2.bombCount == 0 ? 10 : c2.bombCount) * 0xfffff;
 	}
 
 	int operations(Operation[] operations, int player_id) {
@@ -436,6 +429,7 @@ class State {
 			character.pos = next_pos;
 		}
 
+		int now_danger;
 		// 爆弾処理
 		if (operations[0].magic || operations[1].magic) {
 			int[] posBuf = new int[2], fireBuf = new int[2];
@@ -462,16 +456,21 @@ class State {
 				fieldBombCount[character.id]++;
 				nowPutBomb.add(character.pos);
 			}
+			now_danger = enemyDanger(player_id);
 			if (!softBlockBomb(posBuf, fireBuf)) {
-				calcBurstMap();
-				int danger = enemyDanger(player_id);
-				if (baseDanger >= danger) {
+				if (baseDanger >= now_danger) {
 					// System.out.println(baseDanger + " >= " + danger);
 					// Parameter.println("魔無効");
 					return -2;
 				}
 			}
+		} else {
+			now_danger = enemyDanger(player_id);
 		}
+		if (player_id == Parameter.MY_ID)
+			enemyDanger = now_danger;
+		else
+			allyDanger = now_danger;
 
 		{// liveDFS
 			int memo[][] = new int[Parameter.maxLiveDepth + 1][Parameter.XY];
@@ -604,6 +603,7 @@ class State {
 	}
 
 	private int enemyDanger(int player_ip) {
+		calcBurstMap();
 		int res = 0;
 		for (Character c : characters) {
 			if (c.player_id == player_ip)

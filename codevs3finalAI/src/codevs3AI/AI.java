@@ -120,7 +120,7 @@ class AI {
 			Next next = new Next(enemyOperation(tmp, depth, best.value, b), allyOperations);
 			for (Operation o : allyOperations)
 				if (o.equals(NONE))
-					next.value -= 0xffffff;
+					next.value -= 0xfffffff;
 			if (Parameter.DEBUG) {
 				debug = MAX_DEPTH == depth;
 				Parameter.print(depth + " ");
