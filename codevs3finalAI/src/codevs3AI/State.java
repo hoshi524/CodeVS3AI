@@ -19,7 +19,7 @@ class State {
 	final static int HARD_BLOCK = 5;
 	final static int BURST_MAP_INIT = 1000;
 	final static int MAX_INT = Integer.MAX_VALUE / 0xfff;
-	final static int[] dirs = new int[] { 0, -1, 1, -Parameter.X, Parameter.X };
+	final static int[] dirs = new int[] { -1, 1, -Parameter.X, Parameter.X };
 	final static int[] mapPosition = new int[Parameter.XY];
 	static {
 		// 角は評価を下げておく
@@ -281,9 +281,9 @@ class State {
 			Queue<Bomb> que = new ArrayDeque<Bomb>();
 			que.add(b);
 			use[b1] = true;
-			attacked[b.pos] = true;
 			while (!que.isEmpty()) {
 				Bomb bb = que.poll();
+				attacked[bb.pos] = true;
 				for (int d : dirs) {
 					int next_pos = bb.pos;
 					for (int j = 0; j < bb.fire; j++) {
@@ -466,6 +466,7 @@ class State {
 				for (Bomb bomb : bombList) {
 					if (bomb.limitTime == liveDepth && !usedBomb[bomb.pos]) {
 						Queue<Bomb> que = new ArrayDeque<Bomb>();
+						que.add(bomb);
 						for (Bomb bomb2 : bombList) {
 							if (!bomb.equals(bomb2) && bomb.pos == bomb2.pos && !usedBomb[bomb2.pos]) {
 								bombCount++;
@@ -474,10 +475,9 @@ class State {
 						}
 						usedBomb[bomb.pos] = true;
 						bombCount++;
-						burstMemo[bomb.pos] |= 1 << liveDepth;
-						que.add(bomb);
 						while (!que.isEmpty()) {
 							Bomb bb = que.poll();
+							burstMemo[bb.pos] |= 1 << liveDepth;
 							for (int d : dirs) {
 								int next_pos = bb.pos;
 								for (int j = 0; j < bb.fire; j++) {
@@ -535,17 +535,17 @@ class State {
 						else
 							enemyDead++;
 					}
-				Parameter.println(player_id + " " + minDeadTime + " " + liveDepth + " " + allyDead + " " + enemyDead);
+				// Parameter.println(player_id + " " + minDeadTime + " " + liveDepth + " " + allyDead + " " + enemyDead);
 				if (allyDead > 0 && allyDead == enemyDead) {
-					Parameter.println("相打");
+					// Parameter.println("相打");
 					return 1;
 				}
 				if (allyDead > enemyDead) {
-					Parameter.println("自詰");
+					// Parameter.println("自詰");
 					return -1;
 				}
 				if (allyDead < enemyDead) {
-					Parameter.println("相詰");
+					// Parameter.println("相詰");
 					return 3;
 				}
 			}
@@ -562,9 +562,15 @@ class State {
 			return memo[depth][pos] = liveDepth;
 		int bit = 1 << (depth + 1);
 		int res = depth;
+		if ((burstMemo[pos] & bit) == 0) {
+			res = Math.max(res, liveDFS(pos, depth + 1, memo, burstMemo, blockMemo, liveDepth));
+			if (res == liveDepth) {
+				return memo[depth][pos] = res;
+			}
+		}
 		for (int d : dirs) {
 			int next_pos = pos + d;
-			if (!isin(d, next_pos) || (burstMemo[next_pos] & bit) != 0 || ((blockMemo[next_pos] & bit) != 0 && d != 0))
+			if (!isin(d, next_pos) || (burstMemo[next_pos] & bit) != 0 || (blockMemo[next_pos] & bit) != 0)
 				continue;
 			res = Math.max(res, liveDFS(next_pos, depth + 1, memo, burstMemo, blockMemo, liveDepth));
 			if (res == liveDepth) {
