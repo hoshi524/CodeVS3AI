@@ -69,13 +69,7 @@ class AI {
 		already.clear();
 		State state = new State(input);
 		Next next;
-		if (State.time < 10000) {
-			MAX_DEPTH = 0;
-		} else if (State.time < 100000) {
-			MAX_DEPTH = 1;
-		} else {
-			MAX_DEPTH = 2;
-		}
+		MAX_DEPTH = 1;
 
 		next = dfs(state, MAX_DEPTH, Long.MIN_VALUE + Integer.MAX_VALUE, Long.MAX_VALUE - Integer.MAX_VALUE);
 		System.err.println(state.turn + " : " + next.value);
@@ -129,7 +123,8 @@ class AI {
 				Parameter.println(next.value + " ");
 				debug = false;
 			}
-			if (best.value < next.value && (next.value > Long.MAX_VALUE / 4 || !putNotGridBomb(tmp, allyOperations, Parameter.MY_ID))
+			if (best.value < next.value
+					&& (next.value > Long.MAX_VALUE / 4 || !putNotGridBomb(tmp, allyOperations, Parameter.MY_ID))
 					&& (MAX_DEPTH != depth || best.value == Long.MIN_VALUE || !used.contains(tmp.getHash()))) {
 				if (MAX_DEPTH == depth)
 					Parameter.println("update");
@@ -189,7 +184,8 @@ class AI {
 			} else if (res == 1) {
 				// 相打ち
 				if (depth == 0 || (nowAllyDead > 0 && nowAllyDead == nowEnemyDead) || timeover)
-					value = Math.min(value, tmp.calcFleeValue() + (State.time > 100000 ? (Long.MIN_VALUE / 4) : (Long.MAX_VALUE / 4)));
+					value = Math.min(value, tmp.calcFleeValue()
+							+ (State.time > 100000 ? (Long.MIN_VALUE / 4) : (Long.MAX_VALUE / 4)));
 				else
 					hutuuList.add(tmp);
 			} else if (res == 3) {

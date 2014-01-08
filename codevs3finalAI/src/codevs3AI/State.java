@@ -18,7 +18,6 @@ class State {
 	final static int SOFT_BLOCK = 4;
 	final static int HARD_BLOCK = 5;
 	final static int BURST_MAP_INIT = 1000;
-	final static int MAX_INT = Integer.MAX_VALUE / 0xfff;
 	final static int[] dirs = new int[] { -1, 1, -Parameter.X, Parameter.X };
 	final static int[] mapPosition = new int[Parameter.XY];
 	static {
@@ -90,8 +89,8 @@ class State {
 			sc.next();
 			int characters_num = sc.nextInt();
 			for (int i = 0; i < characters_num; i++) {
-				characters[i] = new Character(sc.nextInt(), sc.nextInt(), (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1),
-						sc.nextInt(), sc.nextInt());
+				characters[i] = new Character(sc.nextInt(), sc.nextInt(), (sc.nextInt() - 1) * Parameter.X
+						+ (sc.nextInt() - 1), sc.nextInt(), sc.nextInt());
 			}
 
 			int bomb_num = sc.nextInt();
@@ -188,12 +187,6 @@ class State {
 						mapPosition[pos] = (Integer.MIN_VALUE / 4);
 						break;
 					}
-					if (j > Parameter.X) {
-						// 無限ループ回避でとりあえず入れておく
-						// jがそこまで大きくならない可能性で実行されない？
-						System.err.println("error hard block");
-						break;
-					}
 					if (i == 0 && x == Parameter.X - j)
 						i = 1;
 					else if (i == 1 && y == Parameter.Y - j)
@@ -251,12 +244,6 @@ class State {
 					}
 					break;
 				}
-				if (j > Parameter.X) {
-					// 無限ループ回避でとりあえず入れておく
-					// jがそこまで大きくならない可能性で実行されない？
-					System.err.println("error hard block");
-					break;
-				}
 				if (i == 0 && x == Parameter.X - j)
 					i = 1;
 				else if (i == 1 && y == Parameter.Y - j)
@@ -269,7 +256,7 @@ class State {
 				}
 			}
 		}
-
+		ArrayDeque<Integer> softBlockList = new ArrayDeque<Integer>();
 		for (int b1 = 0; b1 < size; b1++) {
 			Bomb b = bombList.get(b1);
 			if (use[b1])
@@ -291,9 +278,12 @@ class State {
 						if (!isin(d, next_pos) || map[next_pos] == HARD_BLOCK)
 							break;
 						attacked[next_pos] = true;
-						if (map[next_pos] == SOFT_BLOCK)
+						if (map[next_pos] == SOFT_BLOCK) {
+							softBlockList.add(next_pos);
 							break;
+						}
 						if (map[next_pos] == BOMB) {
+							map[next_pos] = BLANK;
 							for (int b2 = 0; b2 < size; b2++) {
 								Bomb nb = bombList.get(b2);
 								if (next_pos == nb.pos && !use[b2]) {
@@ -311,10 +301,8 @@ class State {
 			if (attacked[c.pos])
 				c.dead = true;
 
-		for (int pos = 0; pos < Parameter.XY; pos++) {
-			if (attacked[pos] && map[pos] > BLANK)
-				map[pos] = BLANK;
-		}
+		for (int pos : softBlockList)
+			map[pos] = BLANK;
 		ArrayList<Bomb> next_bl = new ArrayList<Bomb>();
 		for (int i = 0; i < size; i++) {
 			if (!use[i]) {
@@ -369,22 +357,31 @@ class State {
 		return burstMap;
 	}
 
-	private final static int posLen(int p1, int p2) {
-		int x1 = p1 % Parameter.X, y1 = p1 / Parameter.X;
-		int x2 = p2 % Parameter.X, y2 = p2 / Parameter.X;
-		return Math.abs(x1 - x2) + Math.abs(y1 - y2);
+	private static final int length[][] = new int[Parameter.XY][Parameter.XY];
+	static {
+		int div[] = new int[Parameter.XY], mod[] = new int[Parameter.XY];
+		for (int p = 0; p < Parameter.XY; p++) {
+			div[p] = p / Parameter.X;
+			mod[p] = p % Parameter.X;
+		}
+		for (int p1 = 0; p1 < Parameter.XY; p1++) {
+			for (int p2 = 0; p2 < Parameter.XY; p2++) {
+				length[p1][p2] = Math.abs(div[p1] - div[p2]) + Math.abs(mod[p1] - mod[p2]);
+			}
+		}
 	}
 
 	long calcValue() {
 		Character c1 = characters[ac1], c2 = characters[ac2];
-		return -0xffff * Math.max(0, 10 - posLen(c1.pos, c2.pos)) - allyDanger + enemyDanger * 2 + (long) mapPosition[c1.pos]
-				+ c1.bombCount * 0xfffffffL + (long) itemMap[c1.pos] + (long) mapPosition[c2.pos] + c2.bombCount * 0xfffffffL
-				+ (long) itemMap[c2.pos];
+		return -0xffff * Math.max(0, 10 - length[c1.pos][c2.pos]) - allyDanger + enemyDanger * 2
+				+ (long) mapPosition[c1.pos] + c1.bombCount * 0xfffffffL + (long) itemMap[c1.pos]
+				+ (long) mapPosition[c2.pos] + c2.bombCount * 0xfffffffL + (long) itemMap[c2.pos];
 	}
 
 	long calcFleeValue() {
 		Character c1 = characters[ac1], c2 = characters[ac2];
-		return -allyDanger + (c1.bombCount == 0 ? 10 : c1.bombCount) * 0xfffff + (c2.bombCount == 0 ? 10 : c2.bombCount) * 0xfffff;
+		return -allyDanger + (c1.bombCount == 0 ? 10 : c1.bombCount) * 0xfffff
+				+ (c2.bombCount == 0 ? 10 : c2.bombCount) * 0xfffff;
 	}
 
 	int operations(Operation[] operations, int player_id, int depth) {
@@ -452,9 +449,12 @@ class State {
 			int burstMemo[] = new int[Parameter.XY];
 			int blockMemo[] = new int[Parameter.XY];
 
+			ArrayDeque<Integer> softBlockList = new ArrayDeque<Integer>();
 			for (int pos = 0; pos < Parameter.XY; pos++) {
 				if (map[pos] == HARD_BLOCK) {
 					blockMemo[pos] = -1;
+				} else if (map[pos] == SOFT_BLOCK) {
+					softBlockList.add(pos);
 				}
 			}
 			boolean softBlockClash[] = new boolean[Parameter.XY];
@@ -506,10 +506,10 @@ class State {
 				for (Bomb bomb : bombList)
 					if (!usedBomb[bomb.pos])
 						blockMemo[bomb.pos] |= 1 << liveDepth;
-				for (int pos = 0; pos < Parameter.XY; pos++) {
-					if (map[pos] == SOFT_BLOCK && !softBlockClash[pos])
-						blockMemo[pos] |= 1 << liveDepth;
-					softBlockClash[pos] |= tmpSoftBlockClash[pos];
+				for (int p : softBlockList) {
+					if (!softBlockClash[p])
+						blockMemo[p] |= 1 << liveDepth;
+					softBlockClash[p] |= tmpSoftBlockClash[p];
 				}
 			}
 
@@ -588,9 +588,10 @@ class State {
 				continue;
 
 			int enemyMap[] = new int[Parameter.XY];
-			ArrayDeque<Integer> que = new ArrayDeque<Integer>();
+			ArrayDeque<Integer> que = new ArrayDeque<Integer>(), pos = new ArrayDeque<Integer>();
 			enemyMap[c.pos] = 4;
 			que.add(c.pos);
+			pos.add(c.pos);
 			while (!que.isEmpty()) {
 				int now_pos = que.poll();
 				for (int d : dirs) {
@@ -599,14 +600,14 @@ class State {
 						enemyMap[next_pos] = enemyMap[now_pos] - 1;
 						if (enemyMap[next_pos] > 1) {
 							que.add(next_pos);
+							pos.add(next_pos);
 						}
 					}
 				}
 			}
-			int enemyDanger = 0;
-			for (int p = 0; p < Parameter.XY; p++) {
-				if (enemyMap[p] > 0)
-					enemyDanger -= 0xfff;
+
+			int enemyDanger = -0xfff * pos.size();
+			for (int p : pos) {
 				enemyDanger += enemyMap[p] * Math.max(10 - burstMap[p], 0);
 			}
 			res += enemyDanger;
