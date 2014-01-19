@@ -366,22 +366,21 @@ class State {
 		}
 		for (int p1 = 0; p1 < Parameter.XY; p1++) {
 			for (int p2 = 0; p2 < Parameter.XY; p2++) {
-				length[p1][p2] = Math.abs(div[p1] - div[p2]) + Math.abs(mod[p1] - mod[p2]);
+				length[p1][p2] = -0xffff
+						* Math.max(0, 10 - (Math.abs(div[p1] - div[p2]) + Math.abs(mod[p1] - mod[p2])));
 			}
 		}
 	}
 
 	long calcValue() {
 		Character c1 = characters[ac1], c2 = characters[ac2];
-		return -0xffff * Math.max(0, 10 - length[c1.pos][c2.pos]) - allyDanger + enemyDanger * 2
-				+ (long) mapPosition[c1.pos] + c1.bombCount * 0xfffffffL + (long) itemMap[c1.pos]
-				+ (long) mapPosition[c2.pos] + c2.bombCount * 0xfffffffL + (long) itemMap[c2.pos];
+		return length[c1.pos][c2.pos] - allyDanger + enemyDanger + (long) mapPosition[c1.pos] + c1.bombCount
+				+ (long) itemMap[c1.pos] + (long) mapPosition[c2.pos] + c2.bombCount + (long) itemMap[c2.pos];
 	}
 
 	long calcFleeValue() {
 		Character c1 = characters[ac1], c2 = characters[ac2];
-		return -allyDanger + (c1.bombCount == 0 ? 10 : c1.bombCount) * 0xfffff
-				+ (c2.bombCount == 0 ? 10 : c2.bombCount) * 0xfffff;
+		return -allyDanger + (c1.bombCount == 0 ? 0xffffff : 0xffff) + (c2.bombCount == 0 ? 0xffffff : 0xffff);
 	}
 
 	int operations(Operation[] operations, int player_id, int depth) {
@@ -422,7 +421,7 @@ class State {
 
 				bombList.add(new Bomb(character.id, character.pos, operation.burstTime, character.fire));
 				map[character.pos] = BOMB;
-				character.bombCount |= 1 << depth;
+				character.bombCount |= 0xffffffL << depth;
 				fieldBombCount[character.id]++;
 				nowPutBomb.add(character.pos);
 			}

@@ -11,7 +11,7 @@ class AI {
 		@SuppressWarnings("resource")
 		Scanner sc = new Scanner(System.in);
 		AI ai = new AI();
-		System.out.println("TEAM-LAB");
+		System.out.println("hoshi524");
 		while (true) {
 			StringBuilder sb = new StringBuilder();
 			while (true) {
@@ -25,7 +25,7 @@ class AI {
 	}
 
 	static final Operation NONE = new Operation(Move.NONE, false, 5);
-	static int MAX_DEPTH;
+	static final int MAX_DEPTH = 2;
 
 	static final ArrayList<Operation[]> operationList = new ArrayList<Operation[]>();
 
@@ -63,17 +63,17 @@ class AI {
 	}
 
 	long start;
+	int dfsCount;
 
 	String think(String input) {
 		start = System.nanoTime();
 		already.clear();
 		State state = new State(input);
 		Next next;
-		MAX_DEPTH = 1;
+		dfsCount = 0;
 
 		next = dfs(state, MAX_DEPTH, Long.MIN_VALUE + Integer.MAX_VALUE, Long.MAX_VALUE - Integer.MAX_VALUE);
-		System.err.println(state.turn + " : " + next.value);
-		// System.err.println("sum state: " + already.size());
+		System.err.println(String.format("%3d : %15d %6d", state.turn, next.value, dfsCount));
 
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < Parameter.PLAYER; i++) {
@@ -98,8 +98,8 @@ class AI {
 
 	HashMap<Long, Next> already = new HashMap<Long, Next>();
 
-	// @SuppressWarnings("unused")
 	Next dfs(State now, int depth, long a, long b) {
+		dfsCount++;
 		long stateHash = now.getHash();
 		if (already.containsKey(stateHash)) {
 			return already.get(stateHash);
@@ -146,6 +146,7 @@ class AI {
 
 	long enemyOperation(State now, int depth, long a, long b) {
 		long value = b;
+		int dieCount = 0;
 		boolean flag = true;
 		boolean aiuti = true, kati = true;
 		ArrayList<State> hutuuList = new ArrayList<State>();
@@ -173,7 +174,7 @@ class AI {
 			if (nowAllyDead > nowEnemyDead) {
 				return (Long.MIN_VALUE / 2) - Integer.MAX_VALUE;
 			}
-			boolean timeover = 1 <= (MAX_DEPTH - depth) && (System.nanoTime() - start) > 2000000000L;
+			boolean timeover = 1 <= (MAX_DEPTH - depth) && (System.nanoTime() - start) > 1200000000L;
 			if (res == 2) {
 				// どっちも詰んでない
 				if (depth == 0 || timeover) {
@@ -192,6 +193,7 @@ class AI {
 				// 自分が詰んだ
 				value = Math.min(value, tmp.calcFleeValue() + (Long.MIN_VALUE / 2));
 				flag = false;
+				dieCount -= 0xf;
 			} else if (res == -1) {
 				// 相手が詰んだ
 				if (depth == 0 || nowEnemyDead > 0 || timeover) {
@@ -199,6 +201,7 @@ class AI {
 				} else {
 					tumiList.add(tmp);
 				}
+				dieCount += 0xf;
 			}
 		}
 		if (!kati && aiuti) {
@@ -221,6 +224,6 @@ class AI {
 				}
 			}
 		}
-		return value;
+		return value + dieCount;
 	}
 }

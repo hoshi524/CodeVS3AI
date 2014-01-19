@@ -1,1 +1,1 @@
-java -d64 -server -XX:+AggressiveOpts -jar codevs3finalAItest.jar
+java -d64 -server -XX:+AggressiveOpts -jar codevs3finalAI.jar
