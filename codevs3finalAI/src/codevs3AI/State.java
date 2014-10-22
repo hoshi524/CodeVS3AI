@@ -4,10 +4,8 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Queue;
 import java.util.Scanner;
-import java.util.Set;
 
 class State {
 
@@ -25,6 +23,8 @@ class State {
 		mapPosition[0] = mapPosition[1] = mapPosition[11] = mapPosition[12] = mapPosition[13] = mapPosition[25] = mapPosition[117] = mapPosition[129] = mapPosition[130] = mapPosition[131] = mapPosition[141] = mapPosition[142] = Integer.MIN_VALUE / 4;
 	}
 	static long time;
+	static long AiutiValue;
+	static int liveDepth;
 	static int allyDanger, enemyDanger;
 	static int ac1, ac2;
 	int turn;
@@ -36,7 +36,6 @@ class State {
 	int fieldBombCount[] = new int[Parameter.CHARACTER_NUM];
 
 	ArrayList<Bomb> bombList = new ArrayList<Bomb>();
-	Set<Integer> nowPutBomb = new HashSet<Integer>();
 
 	public static final boolean isin(int dir, int next) {
 		int x = next % Parameter.X;
@@ -54,7 +53,6 @@ class State {
 		for (Bomb b : s.bombList) {
 			bombList.add(new Bomb(b));
 		}
-		this.nowPutBomb = new HashSet<Integer>(s.nowPutBomb);
 	}
 
 	State(String str) {
@@ -62,6 +60,8 @@ class State {
 			Scanner sc = new Scanner(str);
 
 			time = sc.nextLong(); // time
+			// 時間がある時は相打ちを狙わない、時間がない時は積極的に相打ちを狙う
+			AiutiValue = State.time > 100000 ? Long.MIN_VALUE / 8 : Long.MAX_VALUE / 8;
 			turn = sc.nextInt(); // turn
 			sc.nextInt(); // max_turn
 			Parameter.setMyID(sc.nextInt());
@@ -210,7 +210,6 @@ class State {
 	}
 
 	void step() {
-		nowPutBomb.clear();
 		for (Character c : characters) {
 			if (map[c.pos] == NUMBER)
 				c.bomb++;
@@ -379,8 +378,8 @@ class State {
 	}
 
 	long calcFleeValue() {
-		Character c1 = characters[ac1], c2 = characters[ac2];
-		return -allyDanger + (c1.bombCount == 0 ? 0xffffff : 0xffff) + (c2.bombCount == 0 ? 0xffffff : 0xffff);
+		// Character c1 = characters[ac1], c2 = characters[ac2];
+		return -allyDanger;
 	}
 
 	int operations(Operation[] operations, int player_id, int depth) {
@@ -391,7 +390,7 @@ class State {
 			Operation operation = operations[character.id & 1];
 			int next_pos = character.pos + operation.move.dir;
 			if (!isin(operation.move.dir, next_pos) || map[next_pos] == SOFT_BLOCK || map[next_pos] == HARD_BLOCK
-					|| (map[next_pos] == BOMB && next_pos != character.pos && !nowPutBomb.contains(next_pos))) {
+					|| (map[next_pos] == BOMB && next_pos != character.pos)) {
 				// Parameter.println("移不");
 				return 0;
 			}
@@ -421,9 +420,8 @@ class State {
 
 				bombList.add(new Bomb(character.id, character.pos, operation.burstTime, character.fire));
 				map[character.pos] = BOMB;
-				character.bombCount |= 0xffffffL << depth;
+				character.bombCount |= 0xfffffL << depth;
 				fieldBombCount[character.id]++;
-				nowPutBomb.add(character.pos);
 			}
 			now_danger = enemyDanger(player_id);
 			if (!softBlockBomb(posBuf, fireBuf)) {
@@ -459,7 +457,6 @@ class State {
 			boolean softBlockClash[] = new boolean[Parameter.XY];
 			boolean usedBomb[] = new boolean[Parameter.XY];
 			int bombCount = 0, allBombCount = bombList.size();
-			int liveDepth;
 			for (liveDepth = 0; liveDepth < Parameter.maxLiveDepth && bombCount < allBombCount; liveDepth++) {
 				boolean tmpSoftBlockClash[] = new boolean[Parameter.XY];
 				for (Bomb bomb : bombList) {
@@ -512,24 +509,20 @@ class State {
 				}
 			}
 
-			int deadTime[] = new int[Parameter.CHARACTER_NUM];
-			Arrays.fill(deadTime, Integer.MAX_VALUE);
-			for (int i = 0; i < Parameter.CHARACTER_NUM; i++) {
-				Character character = this.characters[i];
-				if ((burstMemo[character.pos] & 1) != 0)
-					deadTime[i] = 0;
-				else
-					deadTime[i] = liveDFS(character.pos, 0, memo, burstMemo, blockMemo, liveDepth);
-			}
 			int minDeadTime = liveDepth;
-			for (int time : deadTime)
-				minDeadTime = Math.min(minDeadTime, time);
+			for (Character c : this.characters) {
+				if ((burstMemo[c.pos] & 1) != 0)
+					c.deadTime = 0;
+				else
+					c.deadTime = liveDFS(c.pos, 0, memo, burstMemo, blockMemo, liveDepth);
+				minDeadTime = Math.min(minDeadTime, c.deadTime);
+			}
 			if (minDeadTime < liveDepth) {
 				int allyDead = 0, enemyDead = 0;
-				for (int i = 0; i < Parameter.CHARACTER_NUM; i++)
-					if (deadTime[i] == minDeadTime) {
-						Parameter.println("dead id: " + characters[i].id);
-						if (characters[i].player_id == player_id)
+				for (Character c : this.characters)
+					if (c.deadTime == minDeadTime) {
+						// Parameter.println("dead id: " + characters[i].id);
+						if (c.player_id == player_id)
 							allyDead++;
 						else
 							enemyDead++;

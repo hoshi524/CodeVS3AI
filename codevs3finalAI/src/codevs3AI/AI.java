@@ -69,11 +69,16 @@ class AI {
 		start = System.nanoTime();
 		already.clear();
 		State state = new State(input);
-		Next next;
 		dfsCount = 0;
 
-		next = dfs(state, MAX_DEPTH, Long.MIN_VALUE + Integer.MAX_VALUE, Long.MAX_VALUE - Integer.MAX_VALUE);
+		Next next = dfs(state, MAX_DEPTH, Long.MIN_VALUE, Long.MAX_VALUE);
+		Next test = mtdf(state);
+		if (next.value != test.value) {
+			System.err.println(next.value + " != " + test.value);
+		}
 		System.err.println(String.format("%3d : %15d %6d", state.turn, next.value, dfsCount));
+		state.operations(next.operations, Parameter.MY_ID, MAX_DEPTH);
+		used.add(state.getHash());
 
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < Parameter.PLAYER; i++) {
@@ -82,75 +87,92 @@ class AI {
 		return sb.toString();
 	}
 
-	boolean putNotGridBomb(State now, Operation operations[], int id) {
-		for (Character character : now.characters) {
-			if (character.player_id != id)
-				continue;
-			Operation operation = operations[character.id & 1];
-			if (operation.magic && (character.pos & 1) == 1) {
-				return true;
-			}
+	Next mtdf(State now) {
+		already.clear();
+		long lower = Long.MIN_VALUE + Integer.MAX_VALUE;
+		long upper = Long.MAX_VALUE + Integer.MIN_VALUE;
+		long bound = (upper + lower) / 2;
+		Next next = new Next(lower, operationList.get(0));
+		while (lower + 2 < upper && upper > Long.MIN_VALUE / 2 + Integer.MAX_VALUE) {
+			next = dfs(now, MAX_DEPTH, bound - 1, bound);
+			if (next.value < bound)
+				upper = next.value;
+			else
+				lower = next.value;
+			bound = (upper + lower) / 2;
 		}
-		return false;
+		return next;
 	}
 
 	HashSet<Long> used = new HashSet<Long>();
 
-	HashMap<Long, Next> already = new HashMap<Long, Next>();
+	class Already {
+		final Next next;
+		final long lower, upper;
 
-	Next dfs(State now, int depth, long a, long b) {
+		public Already(Next next, long lower, long upper) {
+			this.next = next;
+			this.lower = lower;
+			this.upper = upper;
+		}
+	}
+
+	HashMap<Long, Already> already = new HashMap<>();
+
+	Next dfs(State now, int depth, long alpha, long beta) {
 		dfsCount++;
 		long stateHash = now.getHash();
+		long lower, upper;
 		if (already.containsKey(stateHash)) {
-			return already.get(stateHash);
+			Already r = already.get(stateHash);
+			lower = r.lower;
+			upper = r.upper;
+			if (lower >= beta || upper <= alpha || lower == upper)
+				return r.next;
+			alpha = Math.max(alpha, lower);
+			beta = Math.min(beta, upper);
+		} else {
+			lower = Long.MIN_VALUE;
+			upper = Long.MAX_VALUE;
 		}
-		Next best = new Next(a, operationList.get(0));
+		Next best = new Next(alpha, operationList.get(0));
 
 		for (Operation[] allyOperations : operationList) {
 			State tmp = new State(now);
 			int res = tmp.operations(allyOperations, Parameter.MY_ID, depth);
 			if (res == 0 || res == -1 || res == -2)
 				continue;
-			Next next = new Next(enemyOperation(tmp, depth, best.value, b), allyOperations);
-			for (Operation o : allyOperations)
-				if (o.equals(NONE))
-					next.value -= 0xfffffff;
-			if (Parameter.DEBUG) {
-				debug = MAX_DEPTH == depth;
+			Next next = new Next(enemyOperation(tmp, depth, best.value, beta), allyOperations);
+			if (Parameter.DEBUG && MAX_DEPTH == depth) {
 				Parameter.print(depth + " ");
 				for (Operation o : allyOperations)
 					Parameter.print(o.toString() + " ");
 				Parameter.println(next.value + " ");
-				debug = false;
 			}
 			if (best.value < next.value
-					&& (next.value > Long.MAX_VALUE / 4 || !putNotGridBomb(tmp, allyOperations, Parameter.MY_ID))
 					&& (MAX_DEPTH != depth || best.value == Long.MIN_VALUE || !used.contains(tmp.getHash()))) {
 				if (MAX_DEPTH == depth)
 					Parameter.println("update");
 				best = next;
 			}
-			if (best.value >= b)
+			if (best.value >= beta)
 				break;
 		}
-		if (MAX_DEPTH == depth) {
-			State tmp = new State(now);
-			tmp.operations(best.operations, Parameter.MY_ID, depth);
-			used.add(tmp.getHash());
-		}
-		already.put(stateHash, best);
+		if (best.value <= alpha)
+			already.put(stateHash, new Already(best, lower, best.value));
+		else if (best.value >= beta)
+			already.put(stateHash, new Already(best, best.value, upper));
+		else
+			already.put(stateHash, new Already(best, best.value, best.value));
 		return best;
 	}
 
-	static boolean debug = false;
+	long enemyOperation(State now, int depth, long alpha, long beta) {
+		long value = beta;
+		ArrayList<State> hutuuList = new ArrayList<>();
+		ArrayList<State> tumiList = new ArrayList<>();
+		boolean timeover = 1 <= (MAX_DEPTH - depth) && (System.nanoTime() - start) > 1200000000L;
 
-	long enemyOperation(State now, int depth, long a, long b) {
-		long value = b;
-		int dieCount = 0;
-		boolean flag = true;
-		boolean aiuti = true, kati = true;
-		ArrayList<State> hutuuList = new ArrayList<State>();
-		ArrayList<State> tumiList = new ArrayList<State>();
 		for (Operation[] enemyOperations : operationList) {
 			State tmp = new State(now);
 
@@ -158,23 +180,9 @@ class AI {
 			if (res == 0 || res == -2) {
 				// 不正な行動
 				// 魔法が有効じゃない
-				// 自分のキャラクターが死んだ
 				continue;
 			}
 			tmp.step();
-			int nowAllyDead = 0, nowEnemyDead = 0;
-			for (Character c : tmp.characters)
-				if (c.dead)
-					if (c.player_id == Parameter.MY_ID)
-						nowAllyDead++;
-					else
-						nowEnemyDead++;
-			aiuti &= nowAllyDead > 0 && nowEnemyDead >= nowAllyDead;
-			kati &= nowEnemyDead > nowAllyDead;
-			if (nowAllyDead > nowEnemyDead) {
-				return (Long.MIN_VALUE / 2) - Integer.MAX_VALUE;
-			}
-			boolean timeover = 1 <= (MAX_DEPTH - depth) && (System.nanoTime() - start) > 1200000000L;
 			if (res == 2) {
 				// どっちも詰んでない
 				if (depth == 0 || timeover) {
@@ -184,46 +192,42 @@ class AI {
 				}
 			} else if (res == 1) {
 				// 相打ち
-				if (depth == 0 || (nowAllyDead > 0 && nowAllyDead == nowEnemyDead) || timeover)
-					value = Math.min(value, tmp.calcFleeValue()
-							+ (State.time > 100000 ? (Long.MIN_VALUE / 4) : (Long.MAX_VALUE / 4)));
-				else
-					hutuuList.add(tmp);
+				value = Math.min(value, tmp.calcFleeValue() + State.AiutiValue);
 			} else if (res == 3) {
 				// 自分が詰んだ
-				value = Math.min(value, tmp.calcFleeValue() + (Long.MIN_VALUE / 2));
-				flag = false;
-				dieCount -= 0xf;
+				return Math.min(value, tmp.calcFleeValue() + Long.MIN_VALUE / 4);
 			} else if (res == -1) {
 				// 相手が詰んだ
-				if (depth == 0 || nowEnemyDead > 0 || timeover) {
-					value = Math.min(value, tmp.calcFleeValue() + (Long.MAX_VALUE / 2));
+				if (depth == 0 || dead(tmp.characters, Parameter.ENEMY_ID) > 0 || timeover) {
+					value = Math.min(value, tmp.calcFleeValue() + Long.MAX_VALUE / 4);
 				} else {
 					tumiList.add(tmp);
 				}
-				dieCount += 0xf;
 			}
 		}
-		if (!kati && aiuti) {
-			return (State.time > 100000 ? (Long.MIN_VALUE / 4) : (Long.MAX_VALUE / 4)) - Integer.MAX_VALUE;
-		}
-		if (flag) {
-			if (hutuuList.size() > 0) {
-				for (State state : hutuuList) {
-					value = Math.min(value, dfs(state, depth - 1, a, value).value);
-					if (a >= value) {
-						return value;
-					}
+		if (hutuuList.size() > 0) {
+			for (State state : hutuuList) {
+				value = Math.min(value, dfs(state, depth - 1, alpha, value).value);
+				if (alpha >= value) {
+					return value;
 				}
-			} else if (tumiList.size() > 0) {
-				for (State state : tumiList) {
-					value = Math.min(value, dfs(state, depth - 1, a, value).value);
-					if (a >= value) {
-						return value;
-					}
+			}
+		} else if (tumiList.size() > 0) {
+			for (State state : tumiList) {
+				value = Math.min(value, dfs(state, depth - 1, alpha, value).value);
+				if (alpha >= value) {
+					return value;
 				}
 			}
 		}
-		return value + dieCount;
+		return value;
+	}
+	
+	private final int dead(Character[] characters, int player_id) {
+		int dead = 0;
+		for (Character c : characters)
+			if (c.dead && c.player_id == player_id)
+				dead++;
+		return dead;
 	}
 }

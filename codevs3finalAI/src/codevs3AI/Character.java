@@ -3,6 +3,7 @@ package codevs3AI;
 class Character {
 	final int player_id, id;
 	int fire, bomb, bombCount, pos;
+	int deadTime;
 	boolean dead;
 
 	Character(int player_id, int id, int pos, int fire, int bomb) {
