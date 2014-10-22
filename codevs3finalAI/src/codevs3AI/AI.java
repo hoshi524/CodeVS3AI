@@ -25,7 +25,7 @@ class AI {
 	}
 
 	static final Operation NONE = new Operation(Move.NONE, false, 5);
-	static final int MAX_DEPTH = 2;
+	static final int MAX_DEPTH = 3;
 
 	static final ArrayList<Operation[]> operationList = new ArrayList<Operation[]>();
 
@@ -72,10 +72,10 @@ class AI {
 		dfsCount = 0;
 
 		Next next = dfs(state, MAX_DEPTH, Long.MIN_VALUE, Long.MAX_VALUE);
-		Next test = mtdf(state);
-		if (next.value != test.value) {
-			System.err.println(next.value + " != " + test.value);
-		}
+//		Next test = mtdf(state);
+//		if (next.value != test.value) {
+//			System.err.println(next.value + " != " + test.value);
+//		}
 		System.err.println(String.format("%3d : %15d %6d", state.turn, next.value, dfsCount));
 		state.operations(next.operations, Parameter.MY_ID, MAX_DEPTH);
 		used.add(state.getHash());
@@ -169,6 +169,7 @@ class AI {
 
 	long enemyOperation(State now, int depth, long alpha, long beta) {
 		long value = beta;
+		boolean search = true;
 		ArrayList<State> hutuuList = new ArrayList<>();
 		ArrayList<State> tumiList = new ArrayList<>();
 		boolean timeover = 1 <= (MAX_DEPTH - depth) && (System.nanoTime() - start) > 1200000000L;
@@ -192,6 +193,7 @@ class AI {
 				}
 			} else if (res == 1) {
 				// 相打ち
+				search = false;
 				value = Math.min(value, tmp.calcFleeValue() + State.AiutiValue);
 			} else if (res == 3) {
 				// 自分が詰んだ
@@ -205,24 +207,26 @@ class AI {
 				}
 			}
 		}
-		if (hutuuList.size() > 0) {
-			for (State state : hutuuList) {
-				value = Math.min(value, dfs(state, depth - 1, alpha, value).value);
-				if (alpha >= value) {
-					return value;
+		if (search) {
+			if (hutuuList.size() > 0) {
+				for (State state : hutuuList) {
+					value = Math.min(value, dfs(state, depth - 1, alpha, value).value);
+					if (alpha >= value) {
+						return value;
+					}
 				}
-			}
-		} else if (tumiList.size() > 0) {
-			for (State state : tumiList) {
-				value = Math.min(value, dfs(state, depth - 1, alpha, value).value);
-				if (alpha >= value) {
-					return value;
+			} else if (tumiList.size() > 0) {
+				for (State state : tumiList) {
+					value = Math.min(value, dfs(state, depth - 1, alpha, value).value);
+					if (alpha >= value) {
+						return value;
+					}
 				}
 			}
 		}
 		return value;
 	}
-	
+
 	private final int dead(Character[] characters, int player_id) {
 		int dead = 0;
 		for (Character c : characters)

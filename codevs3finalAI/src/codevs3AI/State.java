@@ -24,7 +24,6 @@ class State {
 	}
 	static long time;
 	static long AiutiValue;
-	static int liveDepth;
 	static int allyDanger, enemyDanger;
 	static int ac1, ac2;
 	int turn;
@@ -457,6 +456,7 @@ class State {
 			boolean softBlockClash[] = new boolean[Parameter.XY];
 			boolean usedBomb[] = new boolean[Parameter.XY];
 			int bombCount = 0, allBombCount = bombList.size();
+			int liveDepth;
 			for (liveDepth = 0; liveDepth < Parameter.maxLiveDepth && bombCount < allBombCount; liveDepth++) {
 				boolean tmpSoftBlockClash[] = new boolean[Parameter.XY];
 				for (Bomb bomb : bombList) {
