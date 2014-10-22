@@ -13,11 +13,11 @@ class Bomb implements Comparable<Bomb> {
 	Bomb(int id, int pos, int limitTime, int fire) {
 		this.id = id;
 		this.pos = pos;
-		this.limitTime = limitTime;
+		this.limitTime = Math.min(limitTime, Parameter.maxLiveDepth - 2);
 		this.fire = fire;
 	}
 
-	String toString(int x) {
+	public String toString() {
 		return pos + " " + limitTime + " " + fire;
 	}
 

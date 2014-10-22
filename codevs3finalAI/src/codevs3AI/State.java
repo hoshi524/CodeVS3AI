@@ -1,13 +1,13 @@
 package codevs3AI;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedList;
+import java.util.HashSet;
 import java.util.Queue;
 import java.util.Scanner;
-
-import util.IntQueue;
+import java.util.Set;
 
 class State {
 
@@ -18,17 +18,25 @@ class State {
 	final static int SOFT_BLOCK = 4;
 	final static int HARD_BLOCK = 5;
 	final static int BURST_MAP_INIT = 1000;
-	final static int MAX_INT = Integer.MAX_VALUE / 0xfff;
-	final static int[] dirs = new int[] { 0, -1, 1, -Parameter.X, Parameter.X };
+	final static int[] dirs = new int[] { -1, 1, -Parameter.X, Parameter.X };
+	final static int[] mapPosition = new int[Parameter.XY];
+	static {
+		// 角は評価を下げておく
+		mapPosition[0] = mapPosition[1] = mapPosition[11] = mapPosition[12] = mapPosition[13] = mapPosition[25] = mapPosition[117] = mapPosition[129] = mapPosition[130] = mapPosition[131] = mapPosition[141] = mapPosition[142] = Integer.MIN_VALUE / 4;
+	}
+	static long time;
+	static int allyDanger, enemyDanger;
+	static int ac1, ac2;
+	int turn;
 
 	int map[] = new int[Parameter.XY];
-	int burstMap[] = new int[Parameter.XY];
 	static int itemMap[] = new int[Parameter.XY];
 
 	Character characters[] = new Character[Parameter.CHARACTER_NUM];
 	int fieldBombCount[] = new int[Parameter.CHARACTER_NUM];
 
 	ArrayList<Bomb> bombList = new ArrayList<Bomb>();
+	Set<Integer> nowPutBomb = new HashSet<Integer>();
 
 	public static final boolean isin(int dir, int next) {
 		int x = next % Parameter.X;
@@ -36,8 +44,8 @@ class State {
 	}
 
 	State(State s) {
+		this.turn = s.turn;
 		System.arraycopy(s.map, 0, map, 0, Parameter.XY);
-		System.arraycopy(s.burstMap, 0, burstMap, 0, Parameter.XY);
 		System.arraycopy(s.fieldBombCount, 0, fieldBombCount, 0, Parameter.CHARACTER_NUM);
 
 		for (int i = 0; i < Parameter.CHARACTER_NUM; i++) {
@@ -46,14 +54,15 @@ class State {
 		for (Bomb b : s.bombList) {
 			bombList.add(new Bomb(b));
 		}
+		this.nowPutBomb = new HashSet<Integer>(s.nowPutBomb);
 	}
 
 	State(String str) {
 		{// Input
 			Scanner sc = new Scanner(str);
 
-			sc.nextLong(); // time
-			sc.nextInt(); // turn
+			time = sc.nextLong(); // time
+			turn = sc.nextInt(); // turn
 			sc.nextInt(); // max_turn
 			Parameter.setMyID(sc.nextInt());
 			sc.nextInt(); // Y
@@ -80,8 +89,8 @@ class State {
 			sc.next();
 			int characters_num = sc.nextInt();
 			for (int i = 0; i < characters_num; i++) {
-				characters[i] = new Character(sc.nextInt(), sc.nextInt(), (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1),
-						sc.nextInt(), sc.nextInt());
+				characters[i] = new Character(sc.nextInt(), sc.nextInt(), (sc.nextInt() - 1) * Parameter.X
+						+ (sc.nextInt() - 1), sc.nextInt(), sc.nextInt());
 			}
 
 			int bomb_num = sc.nextInt();
@@ -99,7 +108,7 @@ class State {
 
 			int item_num = sc.nextInt();
 			Arrays.fill(itemMap, 0);
-			int diff = Integer.MAX_VALUE / 40;
+			int diff = Integer.MAX_VALUE >> 8;
 			for (int i = 0; i < item_num; i++) {
 				String item_type = sc.next();
 				int pos = (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1);
@@ -110,11 +119,11 @@ class State {
 					map[pos] = POWER;
 				}
 
-				IntQueue que = new IntQueue();
+				ArrayDeque<Integer> que = new ArrayDeque<Integer>();
 				que.add(pos);
-				itemMap[pos] = Integer.MAX_VALUE / 4;
+				itemMap[pos] = Integer.MAX_VALUE >> 5;
 
-				while (que.notEmpty()) {
+				while (!que.isEmpty()) {
 					int q_pos = que.poll();
 					for (int dir : dirs) {
 						int next_pos = q_pos + dir;
@@ -130,27 +139,78 @@ class State {
 
 			sc.close();
 
+			Parameter.println("map");
 			for (int y = 0; y < Parameter.Y; y++) {
 				for (int x = 0; x < Parameter.X; x++) {
 					boolean flag = true;
 					for (Character c : characters) {
 						if (c.pos == x + y * Parameter.X) {
-							Parameter.print("   p");
+							if (c.player_id == Parameter.MY_ID)
+								Parameter.print("   ap");
+							else
+								Parameter.print("   ep");
 							flag = false;
 							break;
 						}
 					}
 					if (flag)
-						Parameter.print(String.format("%4d", map[x + y * Parameter.X]));
+						Parameter.print(String.format("%5d", map[x + y * Parameter.X]));
 				}
 				Parameter.println();
 			}
 		}
 
-		calcBurstMap();
+		if (Parameter.DEBUG) {
+			int burstMap[] = calcBurstMap();
+			Parameter.println("burstMap");
+			for (int y = 0; y < Parameter.Y; y++) {
+				for (int x = 0; x < Parameter.X; x++) {
+					Parameter.print(String.format("%5d", burstMap[x + y * Parameter.X]));
+				}
+				Parameter.println();
+			}
+		}
+
+		if (turn >= 294) {
+			int tmpMap[] = new int[Parameter.XY];
+			System.arraycopy(map, 0, tmpMap, 0, Parameter.XY);
+			for (int q = 0; q < 3; q++) {
+				int dy[] = new int[] { 0, 1, 0, -1 };
+				int dx[] = new int[] { 1, 0, -1, 0 };
+				int x = -1, y = 0, i = 0, j = 1;
+				while (true) {
+					x += dx[i];
+					y += dy[i];
+					int pos = y * Parameter.X + x;
+					if (tmpMap[pos] != HARD_BLOCK) {
+						tmpMap[pos] = HARD_BLOCK;
+						mapPosition[pos] = (Integer.MIN_VALUE / 4);
+						break;
+					}
+					if (i == 0 && x == Parameter.X - j)
+						i = 1;
+					else if (i == 1 && y == Parameter.Y - j)
+						i = 2;
+					else if (i == 2 && x == j - 1)
+						i = 3;
+					else if (i == 3 && y == j) {
+						i = 0;
+						j++;
+					}
+				}
+			}
+		}
+		if (Parameter.MY_ID == 0) {
+			ac1 = 0;
+			ac2 = 1;
+		} else {
+			ac1 = 2;
+			ac2 = 3;
+		}
 	}
 
 	void step() {
+		nowPutBomb.clear();
 		for (Character c : characters) {
 			if (map[c.pos] == NUMBER)
 				c.bomb++;
@@ -166,6 +226,37 @@ class State {
 		boolean use[] = new boolean[size];
 		boolean attacked[] = new boolean[Parameter.XY];
 
+		turn++;
+		if (turn >= 294 && (turn & 1) == 0) {
+			int dy[] = new int[] { 0, 1, 0, -1 };
+			int dx[] = new int[] { 1, 0, -1, 0 };
+			int x = -1, y = 0, i = 0, j = 1;
+			while (true) {
+				x += dx[i];
+				y += dy[i];
+				int pos = y * Parameter.X + x;
+				if (map[pos] != HARD_BLOCK) {
+					map[pos] = HARD_BLOCK;
+					for (int bi = 0; bi < bombList.size(); bi++) {
+						if (bombList.get(bi).pos == pos) {
+							use[bi] = true;
+						}
+					}
+					break;
+				}
+				if (i == 0 && x == Parameter.X - j)
+					i = 1;
+				else if (i == 1 && y == Parameter.Y - j)
+					i = 2;
+				else if (i == 2 && x == j - 1)
+					i = 3;
+				else if (i == 3 && y == j) {
+					i = 0;
+					j++;
+				}
+			}
+		}
+		ArrayDeque<Integer> softBlockList = new ArrayDeque<Integer>();
 		for (int b1 = 0; b1 < size; b1++) {
 			Bomb b = bombList.get(b1);
 			if (use[b1])
@@ -174,12 +265,12 @@ class State {
 				b.limitTime--;
 				continue;
 			}
-			Queue<Bomb> que = new LinkedList<Bomb>();
+			Queue<Bomb> que = new ArrayDeque<Bomb>();
 			que.add(b);
 			use[b1] = true;
-			attacked[b.pos] = true;
 			while (!que.isEmpty()) {
 				Bomb bb = que.poll();
+				attacked[bb.pos] = true;
 				for (int d : dirs) {
 					int next_pos = bb.pos;
 					for (int j = 0; j < bb.fire; j++) {
@@ -187,9 +278,12 @@ class State {
 						if (!isin(d, next_pos) || map[next_pos] == HARD_BLOCK)
 							break;
 						attacked[next_pos] = true;
-						if (map[next_pos] == SOFT_BLOCK)
+						if (map[next_pos] == SOFT_BLOCK) {
+							softBlockList.add(next_pos);
 							break;
+						}
 						if (map[next_pos] == BOMB) {
+							map[next_pos] = BLANK;
 							for (int b2 = 0; b2 < size; b2++) {
 								Bomb nb = bombList.get(b2);
 								if (next_pos == nb.pos && !use[b2]) {
@@ -203,10 +297,12 @@ class State {
 			}
 		}
 
-		for (int pos = 0; pos < Parameter.XY; pos++) {
-			if (attacked[pos] && map[pos] > BLANK)
-				map[pos] = BLANK;
-		}
+		for (Character c : characters)
+			if (attacked[c.pos])
+				c.dead = true;
+
+		for (int pos : softBlockList)
+			map[pos] = BLANK;
 		ArrayList<Bomb> next_bl = new ArrayList<Bomb>();
 		for (int i = 0; i < size; i++) {
 			if (!use[i]) {
@@ -216,20 +312,15 @@ class State {
 			}
 		}
 		bombList = next_bl;
-		calcBurstMap();
 	}
 
-	private void calcBurstMap() {
+	private int[] calcBurstMap() {
+		int burstMap[] = new int[Parameter.XY];
 		Arrays.fill(burstMap, BURST_MAP_INIT);
 		int size = bombList.size();
 		boolean use[] = new boolean[size];
 		Collections.sort(bombList);
-		for (int i = 0; i < bombList.size() - 1; i++) {
-			if (bombList.get(i).limitTime > bombList.get(i + 1).limitTime) {
-				throw new RuntimeException("okasii");
-			}
-		}
-		Queue<Bomb> bq = new LinkedList<Bomb>();
+		Queue<Bomb> bq = new ArrayDeque<Bomb>();
 
 		for (int i = 0; i < size; i++) {
 			if (use[i])
@@ -239,7 +330,7 @@ class State {
 			int limitTime = bombList.get(i).limitTime;
 			while (!bq.isEmpty()) {
 				Bomb bb = bq.poll();
-				burstMap[bb.pos] = limitTime;
+				burstMap[bb.pos] = Math.min(burstMap[bb.pos], limitTime);
 
 				for (int d : dirs) {
 					int next_pos = bb.pos;
@@ -247,7 +338,7 @@ class State {
 						next_pos += d;
 						if (!isin(d, next_pos) || map[next_pos] == HARD_BLOCK)
 							break;
-						burstMap[next_pos] = limitTime;
+						burstMap[next_pos] = Math.min(burstMap[next_pos], limitTime);
 						if (map[next_pos] == SOFT_BLOCK)
 							break;
 						if (map[next_pos] == BOMB) {
@@ -263,162 +354,129 @@ class State {
 				}
 			}
 		}
+		return burstMap;
 	}
 
-	private int[] calcLiveMap() {
-		int liveMap[] = new int[Parameter.XY];
-		Arrays.fill(liveMap, MAX_INT);
-
-		for (int pos = 0; pos < Parameter.XY; pos++) {
-			if (map[pos] <= BLANK && burstMap[pos] == BURST_MAP_INIT) {
-				liveMap[pos] = 0;
+	private static final int length[][] = new int[Parameter.XY][Parameter.XY];
+	static {
+		int div[] = new int[Parameter.XY], mod[] = new int[Parameter.XY];
+		for (int p = 0; p < Parameter.XY; p++) {
+			div[p] = p / Parameter.X;
+			mod[p] = p % Parameter.X;
+		}
+		for (int p1 = 0; p1 < Parameter.XY; p1++) {
+			for (int p2 = 0; p2 < Parameter.XY; p2++) {
+				length[p1][p2] = -0xffff
+						* Math.max(0, 10 - (Math.abs(div[p1] - div[p2]) + Math.abs(mod[p1] - mod[p2])));
 			}
 		}
-
-		for (int i = 0; i < 20; i++) {
-			for (int pos = 0; pos < Parameter.XY; pos++) {
-				if (liveMap[pos] == i && map[pos] <= BLANK) {
-					for (int dir : dirs) {
-						int next_pos = pos + dir;
-						if (isin(dir, next_pos) && map[next_pos] <= BOMB && liveMap[pos] < liveMap[next_pos]) {
-							liveMap[next_pos] = liveMap[pos] + 1;
-						}
-					}
-				}
-			}
-		}
-		return liveMap;
-	}
-
-	private int[] calcMapPosition() {
-		int mapPosition[] = new int[Parameter.XY];
-		for (int pos = 0; pos < Parameter.XY; pos++) {
-			int x1 = pos % Parameter.X, y1 = pos / Parameter.X;
-			for (Character c : characters) {
-				int x2 = c.pos % Parameter.X, y2 = c.pos / Parameter.X;
-				if (c.player_id == Parameter.MY_ID)
-					mapPosition[pos] -= (30 - Math.abs(x1 - x2) - Math.abs(y1 - y2)) * 0xffff;
-				else
-					mapPosition[pos] += (30 - Math.abs(x1 - x2) - Math.abs(y1 - y2)) * 0xffff;
-
-			}
-		}
-
-		// 角は評価を下げておく
-		mapPosition[0] -= 0xfffffffL;
-		mapPosition[1] -= 0xfffffffL;
-		mapPosition[11] -= 0xfffffffL;
-		mapPosition[12] -= 0xfffffffL;
-		mapPosition[13] -= 0xfffffffL;
-		mapPosition[25] -= 0xfffffffL;
-		mapPosition[117] -= 0xfffffffL;
-		mapPosition[129] -= 0xfffffffL;
-		mapPosition[130] -= 0xfffffffL;
-		mapPosition[131] -= 0xfffffffL;
-		mapPosition[141] -= 0xfffffffL;
-		mapPosition[142] -= 0xfffffffL;
-		return mapPosition;
 	}
 
 	long calcValue() {
-		int[] mapPosition = calcMapPosition();
-		int[] liveMap = calcLiveMap();
-		long res = 0;
-		for (Character c : characters) {
-			if (c.player_id == Parameter.MY_ID)
-				res += (long) mapPosition[c.pos] + (long) (burstMap[c.pos] - liveMap[c.pos]) * 0xf + (long) c.bombCount * 0xfffffffL
-						+ (long) itemMap[c.pos];
-			else
-				res -= (long) (burstMap[c.pos] - liveMap[c.pos]) * 0xff + (long) c.bombCount * 0xfffffffL;
-		}
-		return res;
+		Character c1 = characters[ac1], c2 = characters[ac2];
+		return length[c1.pos][c2.pos] - allyDanger + enemyDanger + (long) mapPosition[c1.pos] + c1.bombCount
+				+ (long) itemMap[c1.pos] + (long) mapPosition[c2.pos] + c2.bombCount + (long) itemMap[c2.pos];
 	}
 
 	long calcFleeValue() {
-		int[] liveMap = calcLiveMap();
-		long res = 0;
-		for (Character c : characters) {
-			if (c.player_id == Parameter.MY_ID)
-				res += (long) (burstMap[c.pos] - liveMap[c.pos]) * 0xffff - c.bombCount * 0xffffff;
-		}
-		return res;
+		Character c1 = characters[ac1], c2 = characters[ac2];
+		return -allyDanger + (c1.bombCount == 0 ? 0xffffff : 0xffff) + (c2.bombCount == 0 ? 0xffffff : 0xffff);
 	}
 
-	int operations(Operation[] operations, int player_id) {
+	int operations(Operation[] operations, int player_id, int depth) {
 		// 移動処理
 		for (Character character : characters) {
 			if (character.player_id != player_id)
 				continue;
 			Operation operation = operations[character.id & 1];
 			int next_pos = character.pos + operation.move.dir;
-			if (!isin(operation.move.dir, next_pos) || (next_pos != character.pos && map[next_pos] > BLANK)) {
-				Parameter.println("移不");
+			if (!isin(operation.move.dir, next_pos) || map[next_pos] == SOFT_BLOCK || map[next_pos] == HARD_BLOCK
+					|| (map[next_pos] == BOMB && next_pos != character.pos && !nowPutBomb.contains(next_pos))) {
+				// Parameter.println("移不");
 				return 0;
 			}
 			character.pos = next_pos;
 		}
 
 		// 爆弾処理
-		int[] posBuf = new int[2], fireBuf = new int[2];
-		int baseDanger = enemyDanger(player_id);
-		Arrays.fill(posBuf, -1);
-		for (Character character : characters) {
-			if (character.player_id != player_id)
-				continue;
-			Operation operation = operations[character.id & 1];
-			if (!operation.magic)
-				continue;
-			if (fieldBombCount[character.id] >= character.bomb) {
-				Parameter.println("魔不");
-				return 0;
-			}
-			if (map[character.pos] == BOMB) {
-				Parameter.println("魔重複");
-				return 0;
-			}
-			posBuf[character.id & 1] = character.pos;
-			fireBuf[character.id & 1] = character.fire;
+		int now_danger;
+		if (operations[0].magic || operations[1].magic) {
+			int[] posBuf = new int[2], fireBuf = new int[2];
+			int baseDanger = enemyDanger(player_id);
+			Arrays.fill(posBuf, -1);
+			for (Character character : characters) {
+				Operation operation = operations[character.id & 1];
+				if (character.player_id != player_id || !operation.magic)
+					continue;
+				if (fieldBombCount[character.id] >= character.bomb) {
+					// Parameter.println("魔不");
+					return 0;
+				}
+				if (map[character.pos] == BOMB) {
+					// Parameter.println("魔重複");
+					return 0;
+				}
+				posBuf[character.id & 1] = character.pos;
+				fireBuf[character.id & 1] = character.fire;
 
-			bombList.add(new Bomb(character.id, character.pos, operation.burstTime, character.fire));
-			map[character.pos] = BOMB;
-			character.bombCount++;
-			fieldBombCount[character.id]++;
-		}
-		if (!softBlockBomb(posBuf, fireBuf)) {
-			calcBurstMap();
-			int danger = enemyDanger(player_id);
-			if (baseDanger >= danger) {
-				// System.out.println(baseDanger + " >= " + danger);
-				Parameter.println("魔無効");
-				return -2;
+				bombList.add(new Bomb(character.id, character.pos, operation.burstTime, character.fire));
+				map[character.pos] = BOMB;
+				character.bombCount |= 0xffffffL << depth;
+				fieldBombCount[character.id]++;
+				nowPutBomb.add(character.pos);
 			}
+			now_danger = enemyDanger(player_id);
+			if (!softBlockBomb(posBuf, fireBuf)) {
+				if (baseDanger >= now_danger) {
+					// Parameter.println("魔無効");
+					return -2;
+				}
+			}
+		} else {
+			now_danger = enemyDanger(player_id);
 		}
+		if (player_id == Parameter.MY_ID)
+			enemyDanger = now_danger;
+		else
+			allyDanger = now_danger;
 
 		{// liveDFS
-			int memo[][] = new int[maxLiveDepth][Parameter.XY];
+			int memo[][] = new int[Parameter.maxLiveDepth + 1][Parameter.XY];
+			for (int i = 0; i < Parameter.maxLiveDepth; i++) {
+				Arrays.fill(memo[i], -1);
+			}
 			int burstMemo[] = new int[Parameter.XY];
 			int blockMemo[] = new int[Parameter.XY];
 
+			ArrayDeque<Integer> softBlockList = new ArrayDeque<Integer>();
 			for (int pos = 0; pos < Parameter.XY; pos++) {
 				if (map[pos] == HARD_BLOCK) {
 					blockMemo[pos] = -1;
+				} else if (map[pos] == SOFT_BLOCK) {
+					softBlockList.add(pos);
 				}
 			}
 			boolean softBlockClash[] = new boolean[Parameter.XY];
 			boolean usedBomb[] = new boolean[Parameter.XY];
 			int bombCount = 0, allBombCount = bombList.size();
 			int liveDepth;
-			for (liveDepth = 0; liveDepth < maxLiveDepth && bombCount < allBombCount; liveDepth++) {
+			for (liveDepth = 0; liveDepth < Parameter.maxLiveDepth && bombCount < allBombCount; liveDepth++) {
 				boolean tmpSoftBlockClash[] = new boolean[Parameter.XY];
 				for (Bomb bomb : bombList) {
 					if (bomb.limitTime == liveDepth && !usedBomb[bomb.pos]) {
+						Queue<Bomb> que = new ArrayDeque<Bomb>();
+						que.add(bomb);
+						for (Bomb bomb2 : bombList) {
+							if (!bomb.equals(bomb2) && bomb.pos == bomb2.pos && !usedBomb[bomb2.pos]) {
+								bombCount++;
+								que.add(bomb2);
+							}
+						}
 						usedBomb[bomb.pos] = true;
 						bombCount++;
-						burstMemo[bomb.pos] |= 1 << liveDepth;
-						Queue<Bomb> que = new LinkedList<Bomb>();
-						que.add(bomb);
 						while (!que.isEmpty()) {
 							Bomb bb = que.poll();
+							burstMemo[bb.pos] |= 1 << liveDepth;
 							for (int d : dirs) {
 								int next_pos = bb.pos;
 								for (int j = 0; j < bb.fire; j++) {
@@ -447,56 +505,47 @@ class State {
 				for (Bomb bomb : bombList)
 					if (!usedBomb[bomb.pos])
 						blockMemo[bomb.pos] |= 1 << liveDepth;
-				for (int pos = 0; pos < Parameter.XY; pos++) {
-					if (map[pos] == SOFT_BLOCK && !softBlockClash[pos])
-						blockMemo[pos] |= 1 << liveDepth;
-					softBlockClash[pos] |= tmpSoftBlockClash[pos];
+				for (int p : softBlockList) {
+					if (!softBlockClash[p])
+						blockMemo[p] |= 1 << liveDepth;
+					softBlockClash[p] |= tmpSoftBlockClash[p];
 				}
 			}
 
-			/*if (AI.debug)
-				for (int i = 0; i < liveDepth; i++) {
-					for (int y = 0; y < Parameter.Y; y++) {
-						for (int x = 0; x < Parameter.X; x++) {
-							Parameter
-									.print(((burstMemo[x + y * Parameter.X] | blockMemo[x + y * Parameter.X]) & (1 << i)) != 0 ? "■" : "□");
-						}
-						Parameter.println();
+			int deadTime[] = new int[Parameter.CHARACTER_NUM];
+			Arrays.fill(deadTime, Integer.MAX_VALUE);
+			for (int i = 0; i < Parameter.CHARACTER_NUM; i++) {
+				Character character = this.characters[i];
+				if ((burstMemo[character.pos] & 1) != 0)
+					deadTime[i] = 0;
+				else
+					deadTime[i] = liveDFS(character.pos, 0, memo, burstMemo, blockMemo, liveDepth);
+			}
+			int minDeadTime = liveDepth;
+			for (int time : deadTime)
+				minDeadTime = Math.min(minDeadTime, time);
+			if (minDeadTime < liveDepth) {
+				int allyDead = 0, enemyDead = 0;
+				for (int i = 0; i < Parameter.CHARACTER_NUM; i++)
+					if (deadTime[i] == minDeadTime) {
+						Parameter.println("dead id: " + characters[i].id);
+						if (characters[i].player_id == player_id)
+							allyDead++;
+						else
+							enemyDead++;
 					}
-					Parameter.println();
-				}*/
-
-			int allyDead = 0, enemyDead = 0;
-			for (Character character : characters) {
-				if (character.player_id == player_id
-						&& ((burstMemo[character.pos] & 1) != 0 || !liveDFS(character.pos, 0, memo, burstMemo, blockMemo, liveDepth - 1))) {
-					allyDead++;
-				} else if (character.player_id != player_id
-						&& ((burstMemo[character.pos] & 1) != 0 || !liveDFS(character.pos, 0, memo, burstMemo, blockMemo, liveDepth - 1))) {
-					enemyDead++;
+				// Parameter.println(player_id + " " + minDeadTime + " " + liveDepth + " " + allyDead + " " + enemyDead);
+				if (allyDead > 0 && allyDead == enemyDead) {
+					// Parameter.println("相打");
+					return 1;
 				}
-			}
-			/*if (AI.debug)
-				Parameter.println(allyDead + " " + enemyDead);*/
-			if (allyDead > 0 && allyDead == enemyDead) {
-				// Parameter.println("相打");
-				return 1;
-			}
-			if (allyDead > enemyDead) {
-				// Parameter.println("自詰");
-				return -1;
-			}
-			if (allyDead < enemyDead) {
-				// Parameter.println("相詰");
-				return 3;
-			}
-			for (Character character : characters) {
-				if (character.player_id != player_id)
-					continue;
-				Operation operation = operations[character.id & 1];
-				if (operation.magic && (character.pos & 1) == 1) {
-					// 相手が詰まない状態では格子以外の位置に爆弾を置かない
-					return 0;
+				if (allyDead > enemyDead) {
+					// Parameter.println("自詰");
+					return -1;
+				}
+				if (allyDead < enemyDead) {
+					// Parameter.println("相詰");
+					return 3;
 				}
 			}
 		}
@@ -505,46 +554,44 @@ class State {
 		return 2;
 	}
 
-	private static final int maxLiveDepth = 10;
-
-	// 結果として、移動しない場合は爆弾の上にいられるようにすると成績が下がった
-	// 利点:爆弾の上に留まらないと死ぬケースで生き残れる
-	// 利点:ルールに忠実であるべきで、爆弾の上に留まるのが良くない行為なら、評価関数で評価を下げるべき
-	// 利点:重複するが相手が詰んだと判定しても、生き残る可能性がある
-	// なぜ成績が下がったのか
-	// 欠点:爆弾の上に留まるという行為が危険が高く最善であることが少ない(全くないとかなら留まれないことにして良い)
-	// 欠点:計算量が増える
-	// 欠点：予選では偶然に爆弾の上に留まるAIがいない(たぶんいない)から、留まらないように判定した方が良い結果が得られる
-	private boolean liveDFS(int pos, int depth, int memo[][], int burstMemo[], int blockMemo[], int liveDepth) {
-		if (memo[depth][pos] != 0)
-			return memo[depth][pos] == 1;
-		if (depth >= liveDepth)
-			return true;
+	private int liveDFS(int pos, int depth, int memo[][], int burstMemo[], int blockMemo[], int liveDepth) {
+		if (memo[depth][pos] != -1)
+			return memo[depth][pos];
+		if (depth == liveDepth)
+			return memo[depth][pos] = liveDepth;
 		int bit = 1 << (depth + 1);
-		for (int d : dirs) {
-			int next_pos = pos + d;
-			if (!isin(d, next_pos) || (burstMemo[next_pos] & bit) != 0 || ((blockMemo[next_pos] & bit) != 0))
-				continue;
-			if (liveDFS(next_pos, depth + 1, memo, burstMemo, blockMemo, liveDepth)) {
-				memo[depth][pos] = 1;
-				return true;
+		int res = depth;
+		if ((burstMemo[pos] & bit) == 0) {
+			res = Math.max(res, liveDFS(pos, depth + 1, memo, burstMemo, blockMemo, liveDepth));
+			if (res == liveDepth) {
+				return memo[depth][pos] = res;
 			}
 		}
-		memo[depth][pos] = -1;
-		return false;
+		for (int d : dirs) {
+			int next_pos = pos + d;
+			if (!isin(d, next_pos) || (burstMemo[next_pos] & bit) != 0 || (blockMemo[next_pos] & bit) != 0)
+				continue;
+			res = Math.max(res, liveDFS(next_pos, depth + 1, memo, burstMemo, blockMemo, liveDepth));
+			if (res == liveDepth) {
+				return memo[depth][pos] = res;
+			}
+		}
+		return memo[depth][pos] = res;
 	}
 
 	private int enemyDanger(int player_ip) {
+		int burstMap[] = calcBurstMap();
 		int res = 0;
 		for (Character c : characters) {
 			if (c.player_id == player_ip)
 				continue;
 
 			int enemyMap[] = new int[Parameter.XY];
-			IntQueue que = new IntQueue();
-			enemyMap[c.pos] = 5;
+			ArrayDeque<Integer> que = new ArrayDeque<Integer>(), pos = new ArrayDeque<Integer>();
+			enemyMap[c.pos] = 4;
 			que.add(c.pos);
-			while (que.notEmpty()) {
+			pos.add(c.pos);
+			while (!que.isEmpty()) {
 				int now_pos = que.poll();
 				for (int d : dirs) {
 					int next_pos = now_pos + d;
@@ -552,17 +599,14 @@ class State {
 						enemyMap[next_pos] = enemyMap[now_pos] - 1;
 						if (enemyMap[next_pos] > 1) {
 							que.add(next_pos);
+							pos.add(next_pos);
 						}
 					}
 				}
 			}
-			int z = 0;
-			for (int p = 0; p < Parameter.XY; p++) {
-				if (enemyMap[p] > 0)
-					z++;
-			}
-			int enemyDanger = (30 - z) * 0xffff;
-			for (int p = 0; p < Parameter.XY; p++) {
+
+			int enemyDanger = -0xfff * pos.size();
+			for (int p : pos) {
 				enemyDanger += enemyMap[p] * Math.max(10 - burstMap[p], 0);
 			}
 			res += enemyDanger;
@@ -586,11 +630,9 @@ class State {
 					next_pos += d;
 					if (!isin(d, next_pos) || map[next_pos] == HARD_BLOCK)
 						break;
-					if (burstMap[next_pos] == BURST_MAP_INIT) {
-						if (map[next_pos] == SOFT_BLOCK) {
-							res |= 1 << i;
-							break base;
-						}
+					if (map[next_pos] == SOFT_BLOCK) {
+						res |= 1 << i;
+						break base;
 					}
 				}
 			}
@@ -599,6 +641,7 @@ class State {
 	}
 
 	public long getHash() {
+		int burstMap[] = calcBurstMap();
 		long res = 0;
 		for (int pos = 0; pos < Parameter.XY; pos++) {
 			res ^= Hash.hashMap[Math.max(0, map[pos] - 2) * Parameter.XY + pos];
