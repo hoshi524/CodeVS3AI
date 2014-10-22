@@ -63,22 +63,19 @@ class AI {
 	}
 
 	long start;
-	int dfsCount;
 
 	String think(String input) {
 		start = System.nanoTime();
 		already.clear();
 		State state = new State(input);
-		dfsCount = 0;
 
-		Next next = dfs(state, MAX_DEPTH, Long.MIN_VALUE, Long.MAX_VALUE);
-//		Next test = mtdf(state);
-//		if (next.value != test.value) {
-//			System.err.println(next.value + " != " + test.value);
-//		}
-		System.err.println(String.format("%3d : %15d %6d", state.turn, next.value, dfsCount));
-		state.operations(next.operations, Parameter.MY_ID, MAX_DEPTH);
-		used.add(state.getHash());
+		// Next next = negamax(state, MAX_DEPTH, Long.MIN_VALUE, Long.MAX_VALUE, true);
+		//		Next test = mtdf(state);
+		//		if (next.value != test.value) {
+		//			System.err.println(next.value + " != " + test.value);
+		//		}
+		Next next = MTDF(state);
+		System.err.println(String.format("%3d : %20d", state.turn, next.value));
 
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < Parameter.PLAYER; i++) {
@@ -87,144 +84,165 @@ class AI {
 		return sb.toString();
 	}
 
-	Next mtdf(State now) {
+	private long prevG = 0;
+
+	Next MTDF(State now) {
 		already.clear();
-		long lower = Long.MIN_VALUE + Integer.MAX_VALUE;
-		long upper = Long.MAX_VALUE + Integer.MIN_VALUE;
-		long bound = (upper + lower) / 2;
-		Next next = new Next(lower, operationList.get(0));
-		while (lower + 2 < upper && upper > Long.MIN_VALUE / 2 + Integer.MAX_VALUE) {
-			next = dfs(now, MAX_DEPTH, bound - 1, bound);
-			if (next.value < bound)
-				upper = next.value;
+		long lower = Long.MIN_VALUE;
+		long upper = Long.MAX_VALUE;
+		long g = prevG;
+		Next best = new Next(Long.MIN_VALUE, operationList.get(0));
+		while (lower < upper) {
+			long b;
+			if (g == lower)
+				b = g + 1;
 			else
-				lower = next.value;
-			bound = (upper + lower) / 2;
+				b = g;
+			Next next = negamax(now, MAX_DEPTH, b - 1, b, true);
+			g = next.value;
+			if (next.value < b)
+				upper = g;
+			else
+				lower = g;
+			if (best.value < next.value) {
+				best = next;
+			}
+			// System.err.println(lower + " " + upper);
 		}
-		return next;
+		prevG = best.value;
+		return best;
 	}
 
 	HashSet<Long> used = new HashSet<Long>();
 
 	class Already {
-		final Next next;
-		final long lower, upper;
-
-		public Already(Next next, long lower, long upper) {
-			this.next = next;
-			this.lower = lower;
-			this.upper = upper;
-		}
+		Next next;
+		long lower = Long.MIN_VALUE, upper = Long.MAX_VALUE;
 	}
 
 	HashMap<Long, Already> already = new HashMap<>();
 
-	Next dfs(State now, int depth, long alpha, long beta) {
-		dfsCount++;
-		long stateHash = now.getHash();
-		long lower, upper;
-		if (already.containsKey(stateHash)) {
-			Already r = already.get(stateHash);
-			lower = r.lower;
-			upper = r.upper;
-			if (lower >= beta || upper <= alpha || lower == upper)
-				return r.next;
-			alpha = Math.max(alpha, lower);
-			beta = Math.min(beta, upper);
+	Next negamax(State now, int depth, long alpha, long beta, boolean isMy) {
+		Next best = new Next(isMy ? Long.MIN_VALUE : Long.MAX_VALUE, operationList.get(0));
+		if (isMy) {
+			long key = now.getHash() ^ Hash.hashMap[depth];
+			Already memo;
+			if (already.containsKey(key)) {
+				memo = already.get(key);
+				if (beta <= memo.lower)
+					return new Next(memo.lower, memo.next.operations);
+				if (memo.upper <= alpha)
+					return new Next(memo.upper, memo.next.operations);
+				alpha = Math.max(alpha, memo.lower);
+				beta = Math.min(beta, memo.upper);
+			} else {
+				memo = new Already();
+				already.put(key, memo);
+			}
+			for (Operation[] operations : operationList) {
+				State tmp = new State(now);
+				int res = tmp.operations(operations, Parameter.MY_ID, depth);
+				if (res == 0 || res == -1 || res == -2)
+					continue;
+				Next n = new Next(negamax(tmp, depth, alpha, beta, !isMy).value, operations);
+				//				if (Parameter.DEBUG && MAX_DEPTH == depth) {
+				//					Parameter.print(depth + " ");
+				//					for (Operation o : operations)
+				//						Parameter.print(o.toString() + " ");
+				//					Parameter.println(n.value + " ");
+				//				}
+				if (best.value < n.value) {
+					best = n;
+					if (best.value >= beta) {
+						memo.next = best;
+						memo.lower = best.value;
+						return best;
+					}
+					alpha = Math.max(alpha, best.value);
+				}
+			}
+			memo.next = best;
+			memo.lower = memo.upper = best.value;
 		} else {
-			lower = Long.MIN_VALUE;
-			upper = Long.MAX_VALUE;
-		}
-		Next best = new Next(alpha, operationList.get(0));
+			ArrayList<State> aiutiList = new ArrayList<>();
+			ArrayList<State> hutuuList = new ArrayList<>();
+			ArrayList<State> tumiList = new ArrayList<>();
 
-		for (Operation[] allyOperations : operationList) {
-			State tmp = new State(now);
-			int res = tmp.operations(allyOperations, Parameter.MY_ID, depth);
-			if (res == 0 || res == -1 || res == -2)
-				continue;
-			Next next = new Next(enemyOperation(tmp, depth, best.value, beta), allyOperations);
-			if (Parameter.DEBUG && MAX_DEPTH == depth) {
-				Parameter.print(depth + " ");
-				for (Operation o : allyOperations)
-					Parameter.print(o.toString() + " ");
-				Parameter.println(next.value + " ");
-			}
-			if (best.value < next.value
-					&& (MAX_DEPTH != depth || best.value == Long.MIN_VALUE || !used.contains(tmp.getHash()))) {
-				if (MAX_DEPTH == depth)
-					Parameter.println("update");
-				best = next;
-			}
-			if (best.value >= beta)
-				break;
-		}
-		if (best.value <= alpha)
-			already.put(stateHash, new Already(best, lower, best.value));
-		else if (best.value >= beta)
-			already.put(stateHash, new Already(best, best.value, upper));
-		else
-			already.put(stateHash, new Already(best, best.value, best.value));
-		return best;
-	}
-
-	long enemyOperation(State now, int depth, long alpha, long beta) {
-		long value = beta;
-		boolean search = true;
-		ArrayList<State> hutuuList = new ArrayList<>();
-		ArrayList<State> tumiList = new ArrayList<>();
-		boolean timeover = 1 <= (MAX_DEPTH - depth) && (System.nanoTime() - start) > 1200000000L;
-
-		for (Operation[] enemyOperations : operationList) {
-			State tmp = new State(now);
-
-			int res = tmp.operations(enemyOperations, Parameter.ENEMY_ID, depth);
-			if (res == 0 || res == -2) {
-				// 不正な行動
-				// 魔法が有効じゃない
-				continue;
-			}
-			tmp.step();
-			if (res == 2) {
-				// どっちも詰んでない
-				if (depth == 0 || timeover) {
-					value = Math.min(value, tmp.calcValue());
-				} else {
-					hutuuList.add(tmp);
+			for (Operation[] operations : operationList) {
+				State tmp = new State(now);
+				int res = tmp.operations(operations, Parameter.ENEMY_ID, depth);
+				if (res == 0 || res == -2) {
+					// 不正な行動
+					// 魔法が有効じゃない
+					continue;
 				}
-			} else if (res == 1) {
-				// 相打ち
-				search = false;
-				value = Math.min(value, tmp.calcFleeValue() + State.AiutiValue);
-			} else if (res == 3) {
-				// 自分が詰んだ
-				return Math.min(value, tmp.calcFleeValue() + Long.MIN_VALUE / 4);
-			} else if (res == -1) {
-				// 相手が詰んだ
-				if (depth == 0 || dead(tmp.characters, Parameter.ENEMY_ID) > 0 || timeover) {
-					value = Math.min(value, tmp.calcFleeValue() + Long.MAX_VALUE / 4);
-				} else {
-					tumiList.add(tmp);
+				tmp.step();
+				// Parameter.print(tmp);
+				if (res == 2) {
+					// どっちも詰んでない
+					if (depth == 0) {
+						best.value = Math.min(best.value, tmp.calcValue());
+					} else {
+						hutuuList.add(tmp);
+					}
+				} else if (res == 1) {
+					// 相打ち
+					if (depth == 0
+							|| (dead(tmp.characters, Parameter.ENEMY_ID) > 0 && dead(tmp.characters, Parameter.ENEMY_ID) == dead(
+									tmp.characters, Parameter.MY_ID))) {
+						best.value = Math.min(best.value, tmp.calcFleeValue() + State.AiutiValue);
+					} else {
+						aiutiList.add(tmp);
+					}
+				} else if (res == 3) {
+					// 自分が詰んだ
+					best.value = Math.min(best.value, tmp.calcFleeValue() + Long.MIN_VALUE / 4);
+					return best;
+				} else if (res == -1) {
+					// 相手が詰んだ
+					if (depth == 0 || dead(tmp.characters, Parameter.ENEMY_ID) > 0) {
+						best.value = Math.min(best.value, tmp.calcFleeValue() + Long.MAX_VALUE / 4);
+					} else {
+						tumiList.add(tmp);
+					}
 				}
 			}
-		}
-		if (search) {
-			if (hutuuList.size() > 0) {
+			if (aiutiList.size() > 0) {
+				for (State state : aiutiList) {
+					Next n = negamax(state, depth - 1, alpha, beta, !isMy);
+					if (best.value > n.value) {
+						best = n;
+						if (alpha >= best.value) {
+							return best;
+						}
+						beta = Math.min(beta, best.value);
+					}
+				}
+			} else if (hutuuList.size() > 0) {
 				for (State state : hutuuList) {
-					value = Math.min(value, dfs(state, depth - 1, alpha, value).value);
-					if (alpha >= value) {
-						return value;
+					Next n = negamax(state, depth - 1, alpha, beta, !isMy);
+					if (best.value > n.value) {
+						best = n;
+						if (alpha >= best.value) {
+							return best;
+						}
+						beta = Math.min(beta, best.value);
 					}
 				}
 			} else if (tumiList.size() > 0) {
 				for (State state : tumiList) {
-					value = Math.min(value, dfs(state, depth - 1, alpha, value).value);
-					if (alpha >= value) {
-						return value;
+					Next n = negamax(state, depth - 1, alpha, beta, !isMy);
+					if (best.value > n.value) {
+						best = n;
+						if (alpha >= best.value) {
+							return best;
+						}
+						beta = Math.min(beta, best.value);
 					}
 				}
 			}
 		}
-		return value;
+		return best;
 	}
 
 	private final int dead(Character[] characters, int player_id) {
