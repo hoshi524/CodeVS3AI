@@ -1,1 +1,0 @@
-java -d64 -server -XX:+AggressiveOpts -jar mtdf.jar

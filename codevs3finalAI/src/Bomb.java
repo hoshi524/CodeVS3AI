@@ -1,5 +1,3 @@
-package codevs3AI;
-
 class Bomb implements Comparable<Bomb> {
 	int id, pos, limitTime, fire;
 

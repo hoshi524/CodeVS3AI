@@ -46,7 +46,7 @@ class State {
 		System.arraycopy(s.map, 0, map, 0, Parameter.XY);
 		System.arraycopy(s.fieldBombCount, 0, fieldBombCount, 0, Parameter.CHARACTER_NUM);
 
-		for (int i = 0; i < Parameter.CHARACTER_NUM; i++) {
+		for (int i = 0; i < Parameter.CHARACTER_NUM; ++i) {
 			characters[i] = new Character(s.characters[i]);
 		}
 		for (Bomb b : s.bombList) {
@@ -68,9 +68,9 @@ class State {
 			sc.nextInt(); // X
 
 			sc.next();
-			for (int y = 0; y < Parameter.Y; y++) {
+			for (int y = 0; y < Parameter.Y; ++y) {
 				String line = sc.next();
-				for (int x = 0; x < Parameter.X; x++) {
+				for (int x = 0; x < Parameter.X; ++x) {
 					switch (line.charAt(x + 1)) {
 					case '#':
 						map[x + y * Parameter.X] = HARD_BLOCK;
@@ -87,13 +87,13 @@ class State {
 			}
 			sc.next();
 			int characters_num = sc.nextInt();
-			for (int i = 0; i < characters_num; i++) {
+			for (int i = 0; i < characters_num; ++i) {
 				characters[i] = new Character(sc.nextInt(), sc.nextInt(), (sc.nextInt() - 1) * Parameter.X
 						+ (sc.nextInt() - 1), sc.nextInt(), sc.nextInt());
 			}
 
 			int bomb_num = sc.nextInt();
-			for (int i = 0; i < bomb_num; i++) {
+			for (int i = 0; i < bomb_num; ++i) {
 				int id = sc.nextInt();
 				int pos = (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1);
 				int limitTime = sc.nextInt();
@@ -106,7 +106,7 @@ class State {
 			}
 
 			int item_num = sc.nextInt();
-			for (int i = 0; i < item_num; i++) {
+			for (int i = 0; i < item_num; ++i) {
 				String item_type = sc.next();
 				int pos = (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1);
 				if (item_type.equals("NUMBER_UP")) {
@@ -207,12 +207,12 @@ class State {
 			}
 		}
 		ArrayDeque<Integer> softBlockList = new ArrayDeque<Integer>();
-		for (int b1 = 0; b1 < size; b1++) {
-			Bomb b = bombList.get(b1);
+		for (int b1 = 0; b1 < size; ++b1) {
 			if (use[b1])
 				continue;
+			Bomb b = bombList.get(b1);
 			if (b.limitTime > 0) {
-				b.limitTime--;
+				--b.limitTime;
 				continue;
 			}
 			Queue<Bomb> que = new ArrayDeque<Bomb>();
@@ -223,7 +223,7 @@ class State {
 				attacked[bb.pos] = true;
 				for (int d : dirs) {
 					int next_pos = bb.pos;
-					for (int j = 0; j < bb.fire; j++) {
+					for (int j = 0; j < bb.fire; ++j) {
 						next_pos += d;
 						if (!isin(d, next_pos) || map[next_pos] == HARD_BLOCK)
 							break;
@@ -234,7 +234,7 @@ class State {
 						}
 						if (map[next_pos] == BOMB) {
 							map[next_pos] = BLANK;
-							for (int b2 = 0; b2 < size; b2++) {
+							for (int b2 = 0; b2 < size; ++b2) {
 								Bomb nb = bombList.get(b2);
 								if (next_pos == nb.pos && !use[b2]) {
 									use[b2] = true;
@@ -250,15 +250,14 @@ class State {
 		for (Character c : characters)
 			if (attacked[c.pos])
 				c.dead = true;
-
 		for (int pos : softBlockList)
 			map[pos] = BLANK;
 		ArrayList<Bomb> next_bl = new ArrayList<Bomb>();
-		for (int i = 0; i < size; i++) {
+		for (int i = 0; i < size; ++i) {
 			if (!use[i]) {
 				next_bl.add(bombList.get(i));
 			} else {
-				fieldBombCount[bombList.get(i).id]--;
+				--fieldBombCount[bombList.get(i).id];
 				map[bombList.get(i).pos] = BLANK;
 			}
 		}
@@ -277,7 +276,7 @@ class State {
 		Collections.sort(bombList);
 		Queue<Bomb> bq = new ArrayDeque<Bomb>();
 
-		for (int i = 0; i < size; i++) {
+		for (int i = 0; i < size; ++i) {
 			if (use[i])
 				continue;
 			bq.add(bombList.get(i));
@@ -289,7 +288,7 @@ class State {
 
 				for (int d : dirs) {
 					int next_pos = bb.pos;
-					for (int j = 0; j < bb.fire; j++) {
+					for (int j = 0; j < bb.fire; ++j) {
 						next_pos += d;
 						if (!isin(d, next_pos) || map[next_pos] == HARD_BLOCK)
 							break;
@@ -297,7 +296,7 @@ class State {
 						if (map[next_pos] == SOFT_BLOCK)
 							break;
 						if (map[next_pos] == BOMB) {
-							for (int k = 0; k < size; k++) {
+							for (int k = 0; k < size; ++k) {
 								Bomb b = bombList.get(k);
 								if (next_pos == b.pos && !use[k]) {
 									use[k] = true;
@@ -315,12 +314,12 @@ class State {
 	private static final int length[][] = new int[Parameter.XY][Parameter.XY];
 	static {
 		int div[] = new int[Parameter.XY], mod[] = new int[Parameter.XY];
-		for (int p = 0; p < Parameter.XY; p++) {
+		for (int p = 0; p < Parameter.XY; ++p) {
 			div[p] = p / Parameter.X;
 			mod[p] = p % Parameter.X;
 		}
-		for (int p1 = 0; p1 < Parameter.XY; p1++) {
-			for (int p2 = 0; p2 < Parameter.XY; p2++) {
+		for (int p1 = 0; p1 < Parameter.XY; ++p1) {
+			for (int p2 = 0; p2 < Parameter.XY; ++p2) {
 				length[p1][p2] = -0xfffff
 						* Math.max(0, 10 - (Math.abs(div[p1] - div[p2]) + Math.abs(mod[p1] - mod[p2])));
 			}
@@ -401,14 +400,14 @@ class State {
 
 		{// liveDFS
 			int memo[][] = new int[Parameter.maxLiveDepth + 1][Parameter.XY];
-			for (int i = 0; i < Parameter.maxLiveDepth; i++) {
+			for (int i = 0; i < Parameter.maxLiveDepth; ++i) {
 				Arrays.fill(memo[i], -1);
 			}
 			int burstMemo[] = new int[Parameter.XY];
 			int blockMemo[] = new int[Parameter.XY];
 
 			ArrayDeque<Integer> softBlockList = new ArrayDeque<Integer>();
-			for (int pos = 0; pos < Parameter.XY; pos++) {
+			for (int pos = 0; pos < Parameter.XY; ++pos) {
 				if (map[pos] == HARD_BLOCK) {
 					blockMemo[pos] = -1;
 				} else if (map[pos] == SOFT_BLOCK) {
@@ -419,7 +418,7 @@ class State {
 			boolean usedBomb[] = new boolean[Parameter.XY];
 			int bombCount = 0, allBombCount = bombList.size();
 			int liveDepth;
-			for (liveDepth = 0; liveDepth < Parameter.maxLiveDepth && bombCount < allBombCount; liveDepth++) {
+			for (liveDepth = 0; liveDepth < Parameter.maxLiveDepth && bombCount < allBombCount; ++liveDepth) {
 				boolean tmpSoftBlockClash[] = new boolean[Parameter.XY];
 				for (Bomb bomb : bombList) {
 					if (bomb.limitTime == liveDepth && !usedBomb[bomb.pos]) {
@@ -571,8 +570,8 @@ class State {
 
 	private boolean softBlockBomb(int[] pos, int fire[]) {
 		int res = 0;
-		int burstMap[] = this.calcBurstMap();
-		for (int i = 0; i < 2; i++) {
+		int burstMap[] = calcBurstMap();
+		for (int i = 0; i < 2; ++i) {
 			if (fire[i] == 0) {
 				res |= 1 << i;
 				continue;
@@ -582,7 +581,7 @@ class State {
 
 			base: for (int d : dirs) {
 				int next_pos = posi;
-				for (int j = 0; j < firei; j++) {
+				for (int j = 0; j < firei; ++j) {
 					next_pos += d;
 					if (!isin(d, next_pos) || map[next_pos] == HARD_BLOCK)
 						break;
@@ -599,7 +598,7 @@ class State {
 	public long getHash() {
 		int burstMap[] = calcBurstMap();
 		long res = 0;
-		for (int pos = 0; pos < Parameter.XY; pos++) {
+		for (int pos = 0; pos < Parameter.XY; ++pos) {
 			res ^= Hash.hashMap[Math.max(0, map[pos] - 2) * Parameter.XY + pos];
 			res ^= Hash.hashBomb[Math.min(burstMap[pos], 10) * Parameter.XY + pos];
 		}

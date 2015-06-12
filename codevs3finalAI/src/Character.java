@@ -1,5 +1,3 @@
-package codevs3AI;
-
 class Character {
 	final int player_id, id;
 	int fire, bomb, bombCount, pos;

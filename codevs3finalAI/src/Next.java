@@ -1,4 +1,3 @@
-package codevs3AI;
 class Next {
 	long value;
 	Operation operations[];

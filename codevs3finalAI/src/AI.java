@@ -1,5 +1,3 @@
-package codevs3AI;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,7 +47,7 @@ class AI {
 	static void operation_dfs(int character_num, Operation[] now, ArrayList<Operation[]> res) {
 		if (Parameter.PLAYER == character_num) {
 			Operation[] push = new Operation[now.length];
-			for (int i = 0; i < now.length; i++) {
+			for (int i = 0; i < now.length; ++i) {
 				push[i] = now[i];
 			}
 			res.add(push);
@@ -78,8 +76,8 @@ class AI {
 		System.err.println(String.format("%3d : %20d", state.turn, next.value));
 
 		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < Parameter.PLAYER; i++) {
-			sb.append(next.operations[i].toString() + "\n");
+		for (int i = 0; i < Parameter.PLAYER; ++i) {
+			sb.append(next.operations[i].toString()).append("\n");
 		}
 		return sb.toString();
 	}
@@ -249,7 +247,7 @@ class AI {
 		int dead = 0;
 		for (Character c : characters)
 			if (c.dead && c.player_id == player_id)
-				dead++;
+				++dead;
 		return dead;
 	}
 }

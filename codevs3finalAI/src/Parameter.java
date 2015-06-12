@@ -1,5 +1,3 @@
-package codevs3AI;
-
 class Parameter {
 
 	private Parameter() {
