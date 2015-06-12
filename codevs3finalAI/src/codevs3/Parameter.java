@@ -1,4 +1,6 @@
-class Parameter {
+package codevs3;
+
+public class Parameter {
 
 	private Parameter() {
 	}

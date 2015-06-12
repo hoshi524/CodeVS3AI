@@ -1,24 +1,26 @@
+package codevs3;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Scanner;
 
-class AI {
+public class AI {
 
 	public static void main(String[] args) {
-		@SuppressWarnings("resource")
-		Scanner sc = new Scanner(System.in);
-		AI ai = new AI();
-		System.out.println("hoshi524");
-		while (true) {
-			StringBuilder sb = new StringBuilder();
+		try (Scanner sc = new Scanner(System.in)) {
+			AI ai = new AI();
+			System.out.println("hoshi524");
 			while (true) {
-				String tmp = sc.nextLine();
-				sb.append(tmp + "\n");
-				if (tmp.equals("END"))
-					break;
+				StringBuilder sb = new StringBuilder();
+				while (true) {
+					String tmp = sc.nextLine();
+					sb.append(tmp + "\n");
+					if (tmp.equals("END"))
+						break;
+				}
+				System.out.print(ai.think(sb.toString()));
 			}
-			System.out.print(ai.think(sb.toString()));
 		}
 	}
 

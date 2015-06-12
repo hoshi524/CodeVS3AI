@@ -1,4 +1,4 @@
-package codevs3AI;
+package codevs3;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -7,7 +7,7 @@ import java.util.Collections;
 import java.util.Queue;
 import java.util.Scanner;
 
-class State {
+public class State {
 
 	final static int NUMBER = 0;
 	final static int POWER = 1;

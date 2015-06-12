@@ -1,7 +1,16 @@
+package prev;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Scanner;
+
+import codevs3.Character;
+import codevs3.Hash;
+import codevs3.Move;
+import codevs3.Next;
+import codevs3.Operation;
+import codevs3.Parameter;
 
 public class AI {
 

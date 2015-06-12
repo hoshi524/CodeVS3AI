@@ -1,4 +1,4 @@
-package codevs3AI;
+package prev;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -6,6 +6,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Queue;
 import java.util.Scanner;
+
+import codevs3.Bomb;
+import codevs3.Character;
+import codevs3.Hash;
+import codevs3.Operation;
+import codevs3.Parameter;
 
 class State {
 
@@ -118,8 +124,6 @@ class State {
 			}
 
 			sc.close();
-
-			Parameter.print(this);
 		}
 
 		if (turn >= 294) {

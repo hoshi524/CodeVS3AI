@@ -1,12 +1,12 @@
-
+package codevs3;
 /**
  * プレイヤーが行う操作コマンド
  */
-class Operation {
+public class Operation {
 
-	Move move = Move.NONE;
-	boolean magic = false;
-	int burstTime;
+	public Move move = Move.NONE;
+	public boolean magic = false;
+	public int burstTime;
 
 	public Operation(Move move, boolean magic, int burstTime) {
 		this.move = move;
