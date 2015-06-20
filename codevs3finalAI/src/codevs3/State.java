@@ -13,8 +13,12 @@ public class State {
 	enum Cell {
 		NUMBER, POWER, BLANK, BOMB, SOFT_BLOCK, HARD_BLOCK;
 
-		static final boolean canMove(Cell c) {
-			return c == BLANK || c == NUMBER || c == POWER;
+		boolean canMove() {
+			return this == BLANK || this == NUMBER || this == POWER;
+		}
+
+		boolean cantMove() {
+			return this == BOMB || this == SOFT_BLOCK || this == HARD_BLOCK;
 		}
 	}
 
@@ -338,29 +342,22 @@ public class State {
 	}
 
 	long calcFleeValue() {
-		// Character c1 = characters[ac1], c2 = characters[ac2];
 		return -allyDanger;
 	}
 
 	int operations(Operation[] operations, int player_id, int depth) {
-		int burstMap[] = this.calcBurstMap();
-		boolean allDead = true;
 		// 移動処理
 		for (Character character : characters) {
 			if (character.player_id != player_id)
 				continue;
 			Operation operation = operations[character.id & 1];
 			int next_pos = character.pos + operation.move.dir;
-			if (!isin(operation.move.dir, next_pos) || map[next_pos] == Cell.SOFT_BLOCK
-					|| map[next_pos] == Cell.HARD_BLOCK || (map[next_pos] == Cell.BOMB && next_pos != character.pos)) {
+			if (operation.move != Move.NONE && (!isin(operation.move.dir, next_pos) || map[next_pos].cantMove())) {
 				// Parameter.println("移不");
 				return 0;
 			}
-			allDead &= burstMap[next_pos] == 0;
 			character.pos = next_pos;
 		}
-		if (allDead)
-			return -1;
 
 		// 爆弾処理
 		int now_danger;
@@ -372,12 +369,8 @@ public class State {
 				Operation operation = operations[character.id & 1];
 				if (character.player_id != player_id || !operation.magic)
 					continue;
-				if (fieldBombCount[character.id] >= character.bomb) {
-					// Parameter.println("魔不");
-					return 0;
-				}
-				if (map[character.pos] == Cell.BOMB) {
-					// Parameter.println("魔重複");
+				if (fieldBombCount[character.id] >= character.bomb || map[character.pos] == Cell.BOMB) {
+					// Parameter.println("魔重複 or 魔不");
 					return 0;
 				}
 				posBuf[character.id & 1] = character.pos;
@@ -487,9 +480,9 @@ public class State {
 					if (c.deadTime == minDeadTime) {
 						// Parameter.println("dead id: " + characters[i].id);
 						if (c.player_id == player_id)
-							allyDead++;
+							++allyDead;
 						else
-							enemyDead++;
+							++enemyDead;
 					}
 				// Parameter.println(player_id + " " + minDeadTime + " " + liveDepth + " " + allyDead + " " + enemyDead);
 				if (allyDead > 0 && allyDead == enemyDead) {
@@ -551,7 +544,7 @@ public class State {
 				enemyDanger += enemyMap[now_pos] * Math.max(10 - burstMap[now_pos], 0) - 0xff;
 				for (int d : dirs) {
 					int next_pos = now_pos + d;
-					if (isin(d, next_pos) && Cell.canMove(map[next_pos]) && enemyMap[next_pos] < enemyMap[now_pos]) {
+					if (isin(d, next_pos) && map[next_pos].canMove() && enemyMap[next_pos] < enemyMap[now_pos]) {
 						enemyMap[next_pos] = enemyMap[now_pos] - 1;
 						if (enemyMap[next_pos] > 1) {
 							que.add(next_pos);

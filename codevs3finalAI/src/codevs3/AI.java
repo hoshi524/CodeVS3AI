@@ -25,7 +25,7 @@ public class AI {
 	}
 
 	static final Operation NONE = new Operation(Move.NONE, false, 5);
-	static final int MAX_DEPTH = 2;
+	static final int MAX_DEPTH = 3;
 
 	static final ArrayList<Operation[]> operationList = new ArrayList<Operation[]>();
 
@@ -145,12 +145,6 @@ public class AI {
 				if (res == 0 || res == -1 || res == -2)
 					continue;
 				Next n = new Next(negamax(tmp, depth, alpha, beta, !isMe).value, operations);
-				//				if (Parameter.DEBUG && MAX_DEPTH == depth) {
-				//					Parameter.print(depth + " ");
-				//					for (Operation o : operations)
-				//						Parameter.print(o.toString() + " ");
-				//					Parameter.println(n.value + " ");
-				//				}
 				if (best.value < n.value) {
 					best = n;
 					if (best.value >= beta) {
