@@ -25,7 +25,7 @@ public class AI {
 	}
 
 	static final Operation NONE = new Operation(Move.NONE, false, 5);
-	static final int MAX_DEPTH = 3;
+	static final int MAX_DEPTH = 2;
 
 	static final ArrayList<Operation[]> operationList = new ArrayList<Operation[]>();
 
@@ -64,7 +64,7 @@ public class AI {
 
 	long start;
 
-	String think(String input) {
+	public String think(String input) {
 		start = System.nanoTime();
 		already.clear();
 		State state = new State(input);
@@ -122,9 +122,9 @@ public class AI {
 
 	HashMap<Long, Already> already = new HashMap<>();
 
-	Next negamax(State now, int depth, long alpha, long beta, boolean isMy) {
-		Next best = new Next(isMy ? Long.MIN_VALUE : Long.MAX_VALUE, operationList.get(0));
-		if (isMy) {
+	Next negamax(State now, int depth, long alpha, long beta, boolean isMe) {
+		Next best = new Next(isMe ? Long.MIN_VALUE : Long.MAX_VALUE, operationList.get(0));
+		if (isMe) {
 			long key = now.getHash() ^ Hash.hashMap[depth];
 			Already memo;
 			if (already.containsKey(key)) {
@@ -144,7 +144,7 @@ public class AI {
 				int res = tmp.operations(operations, Parameter.MY_ID, depth);
 				if (res == 0 || res == -1 || res == -2)
 					continue;
-				Next n = new Next(negamax(tmp, depth, alpha, beta, !isMy).value, operations);
+				Next n = new Next(negamax(tmp, depth, alpha, beta, !isMe).value, operations);
 				//				if (Parameter.DEBUG && MAX_DEPTH == depth) {
 				//					Parameter.print(depth + " ");
 				//					for (Operation o : operations)
@@ -209,7 +209,7 @@ public class AI {
 			}
 			if (aiutiList.size() > 0) {
 				for (State state : aiutiList) {
-					Next n = negamax(state, depth - 1, alpha, beta, !isMy);
+					Next n = negamax(state, depth - 1, alpha, beta, !isMe);
 					if (best.value > n.value) {
 						best = n;
 						if (alpha >= best.value) {
@@ -220,7 +220,7 @@ public class AI {
 				}
 			} else if (hutuuList.size() > 0) {
 				for (State state : hutuuList) {
-					Next n = negamax(state, depth - 1, alpha, beta, !isMy);
+					Next n = negamax(state, depth - 1, alpha, beta, !isMe);
 					if (best.value > n.value) {
 						best = n;
 						if (alpha >= best.value) {
@@ -231,7 +231,7 @@ public class AI {
 				}
 			} else if (tumiList.size() > 0) {
 				for (State state : tumiList) {
-					Next n = negamax(state, depth - 1, alpha, beta, !isMy);
+					Next n = negamax(state, depth - 1, alpha, beta, !isMe);
 					if (best.value > n.value) {
 						best = n;
 						if (alpha >= best.value) {
@@ -247,9 +247,14 @@ public class AI {
 
 	private final int dead(Character[] characters, int player_id) {
 		int dead = 0;
-		for (Character c : characters)
-			if (c.dead && c.player_id == player_id)
-				++dead;
+		if (characters[0].dead && characters[0].player_id == player_id)
+			++dead;
+		if (characters[1].dead && characters[1].player_id == player_id)
+			++dead;
+		if (characters[2].dead && characters[2].player_id == player_id)
+			++dead;
+		if (characters[3].dead && characters[3].player_id == player_id)
+			++dead;
 		return dead;
 	}
 }

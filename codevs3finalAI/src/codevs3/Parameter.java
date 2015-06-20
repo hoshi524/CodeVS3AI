@@ -49,7 +49,7 @@ public class Parameter {
 					}
 				}
 				if (flag)
-					Parameter.print(String.format("%5d", s.map[x + y * Parameter.X]));
+					Parameter.print(String.format("%5d", s.map[x + y * Parameter.X].ordinal()));
 			}
 			Parameter.println();
 		}

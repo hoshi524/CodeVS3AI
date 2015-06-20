@@ -4,19 +4,20 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Queue;
 import java.util.Scanner;
 
 public class State {
-	
-	enum Cell{
-		NUMBER,POWER,BLANK,BOMB,SOFT_BLOCK,HARD_BLOCK;
-		
-		static final boolean canMove(Cell c){
-			return c == BLANK||c == NUMBER || c == POWER;
+
+	enum Cell {
+		NUMBER, POWER, BLANK, BOMB, SOFT_BLOCK, HARD_BLOCK;
+
+		static final boolean canMove(Cell c) {
+			return c == BLANK || c == NUMBER || c == POWER;
 		}
 	}
-	
+
 	private final static int BURST_MAP_INIT = 1000;
 	private final static int[] dirs = new int[] { -1, 1, -Parameter.X, Parameter.X };
 	private final static int[] mapPosition = new int[Parameter.XY];
@@ -209,7 +210,7 @@ public class State {
 				}
 			}
 		}
-		ArrayDeque<Integer> softBlockList = new ArrayDeque<Integer>();
+		List<Integer> softBlockList = new ArrayList<Integer>();
 		for (int b1 = 0; b1 < size; ++b1) {
 			if (use[b1])
 				continue;
@@ -343,22 +344,23 @@ public class State {
 
 	int operations(Operation[] operations, int player_id, int depth) {
 		int burstMap[] = this.calcBurstMap();
+		boolean allDead = true;
 		// 移動処理
 		for (Character character : characters) {
 			if (character.player_id != player_id)
 				continue;
 			Operation operation = operations[character.id & 1];
 			int next_pos = character.pos + operation.move.dir;
-			if (!isin(operation.move.dir, next_pos) || map[next_pos] == Cell.SOFT_BLOCK || map[next_pos] == Cell.HARD_BLOCK
-					|| (map[next_pos] == Cell.BOMB && next_pos != character.pos)) {
+			if (!isin(operation.move.dir, next_pos) || map[next_pos] == Cell.SOFT_BLOCK
+					|| map[next_pos] == Cell.HARD_BLOCK || (map[next_pos] == Cell.BOMB && next_pos != character.pos)) {
 				// Parameter.println("移不");
 				return 0;
 			}
-			if (burstMap[next_pos] == 0) {
-				return -1;
-			}
+			allDead &= burstMap[next_pos] == 0;
 			character.pos = next_pos;
 		}
+		if (allDead)
+			return -1;
 
 		// 爆弾処理
 		int now_danger;
@@ -387,7 +389,7 @@ public class State {
 				++fieldBombCount[character.id];
 			}
 			now_danger = enemyDanger(player_id);
-			if (!softBlockBomb(posBuf, fireBuf) && baseDanger >= now_danger) {
+			if (baseDanger >= now_danger && !softBlockBomb(posBuf, fireBuf)) {
 				// Parameter.println("魔無効");
 				return -2;
 			}
@@ -493,10 +495,10 @@ public class State {
 				if (allyDead > 0 && allyDead == enemyDead) {
 					// Parameter.println("相打");
 					return 1;
-				}else if (allyDead > enemyDead) {
+				} else if (allyDead > enemyDead) {
 					// Parameter.println("自詰");
 					return -1;
-				}else if (allyDead < enemyDead) {
+				} else if (allyDead < enemyDead) {
 					// Parameter.println("相詰");
 					return 3;
 				}

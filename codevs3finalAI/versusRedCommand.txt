@@ -1,0 +1,1 @@
+java -d64 -server -XX:+AggressiveOpts -cp bin codevs3.AI
