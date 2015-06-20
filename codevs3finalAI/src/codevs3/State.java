@@ -542,27 +542,22 @@ public class State {
 				continue;
 
 			int enemyMap[] = new int[Parameter.XY];
-			ArrayDeque<Integer> que = new ArrayDeque<Integer>(), pos = new ArrayDeque<Integer>();
+			ArrayDeque<Integer> que = new ArrayDeque<Integer>();
 			enemyMap[c.pos] = 4;
 			que.add(c.pos);
-			pos.add(c.pos);
+			int enemyDanger = 0;
 			while (!que.isEmpty()) {
 				int now_pos = que.poll();
+				enemyDanger += enemyMap[now_pos] * Math.max(10 - burstMap[now_pos], 0) - 0xff;
 				for (int d : dirs) {
 					int next_pos = now_pos + d;
 					if (isin(d, next_pos) && Cell.canMove(map[next_pos]) && enemyMap[next_pos] < enemyMap[now_pos]) {
 						enemyMap[next_pos] = enemyMap[now_pos] - 1;
 						if (enemyMap[next_pos] > 1) {
 							que.add(next_pos);
-							pos.add(next_pos);
 						}
 					}
 				}
-			}
-
-			int enemyDanger = -0xfff * pos.size();
-			for (int p : pos) {
-				enemyDanger += enemyMap[p] * Math.max(10 - burstMap[p], 0);
 			}
 			res += enemyDanger;
 		}
