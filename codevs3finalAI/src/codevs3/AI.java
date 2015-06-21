@@ -25,7 +25,7 @@ public class AI {
 	}
 
 	static final Operation NONE = new Operation(Move.NONE, false, 5);
-	static final int MAX_DEPTH = 3;
+	static final int MAX_DEPTH = 2;
 
 	static final ArrayList<Operation[]> operationList = new ArrayList<Operation[]>();
 
@@ -65,6 +65,7 @@ public class AI {
 	long start;
 
 	public String think(String input) {
+		Timer.start(0);
 		start = System.nanoTime();
 		already.clear();
 		State state = new State(input);
@@ -81,6 +82,8 @@ public class AI {
 		for (int i = 0; i < Parameter.PLAYER; ++i) {
 			sb.append(next.operations[i].toString()).append("\n");
 		}
+		Timer.end(0);
+		Timer.print();
 		return sb.toString();
 	}
 
@@ -141,7 +144,9 @@ public class AI {
 			}
 			for (Operation[] operations : operationList) {
 				State tmp = new State(now);
+				Timer.start(1);
 				int res = tmp.operations(operations, Parameter.MY_ID, depth);
+				Timer.end(1);
 				if (res == 0 || res == -1 || res == -2)
 					continue;
 				Next n = new Next(negamax(tmp, depth, alpha, beta, !isMe).value, operations);
@@ -164,7 +169,9 @@ public class AI {
 
 			for (Operation[] operations : operationList) {
 				State tmp = new State(now);
+				Timer.start(1);
 				int res = tmp.operations(operations, Parameter.ENEMY_ID, depth);
+				Timer.end(1);
 				if (res == 0 || res == -2) {
 					// 不正な行動
 					// 魔法が有効じゃない

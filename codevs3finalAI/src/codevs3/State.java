@@ -359,6 +359,7 @@ public class State {
 			character.pos = next_pos;
 		}
 
+		Timer.start(4);
 		// 爆弾処理
 		int now_danger;
 		if (operations[0].magic || operations[1].magic) {
@@ -393,8 +394,10 @@ public class State {
 			enemyDanger = now_danger;
 		else
 			allyDanger = now_danger;
+		Timer.end(4);
 
 		{// liveDFS
+			Timer.start(2);
 			int memo[][] = new int[Parameter.maxLiveDepth + 1][Parameter.XY];
 			for (int i = 0; i < Parameter.maxLiveDepth; ++i) {
 				Arrays.fill(memo[i], -1);
@@ -410,26 +413,20 @@ public class State {
 					softBlockList.add(pos);
 				}
 			}
-			boolean softBlockClash[] = new boolean[Parameter.XY];
+			boolean softBlockClash[] = new boolean[Parameter.XY], tmpSoftBlockClash[] = new boolean[Parameter.XY];
 			boolean usedBomb[] = new boolean[Parameter.XY];
-			int bombCount = 0, allBombCount = bombList.size();
-			int liveDepth;
-			for (liveDepth = 0; liveDepth < Parameter.maxLiveDepth && bombCount < allBombCount; ++liveDepth) {
-				boolean tmpSoftBlockClash[] = new boolean[Parameter.XY];
-				for (Bomb bomb : bombList) {
+			List<Bomb> bl = new ArrayList<>(bombList);
+			int liveDepth = 0;
+			for (; liveDepth < Parameter.maxLiveDepth && !bl.isEmpty(); ++liveDepth) {
+				for (Bomb bomb : bl) {
 					if (bomb.limitTime == liveDepth && !usedBomb[bomb.pos]) {
 						Queue<Bomb> que = new ArrayDeque<Bomb>();
-						que.add(bomb);
-						for (Bomb bomb2 : bombList) {
-							if (!bomb.equals(bomb2) && bomb.pos == bomb2.pos && !usedBomb[bomb2.pos]) {
-								bombCount++;
+						for (Bomb bomb2 : bl)
+							if (bomb.pos == bomb2.pos)
 								que.add(bomb2);
-							}
-						}
-						usedBomb[bomb.pos] = true;
-						bombCount++;
 						while (!que.isEmpty()) {
 							Bomb bb = que.poll();
+							usedBomb[bb.pos] = true;
 							burstMemo[bb.pos] |= 1 << liveDepth;
 							for (int d : dirs) {
 								int next_pos = bb.pos;
@@ -442,30 +439,34 @@ public class State {
 										tmpSoftBlockClash[next_pos] = true;
 										break;
 									}
-									if (map[next_pos] == Cell.BOMB) {
-										for (Bomb bomb2 : bombList) {
-											if (next_pos == bomb2.pos && !usedBomb[bomb2.pos]) {
-												usedBomb[bomb2.pos] = true;
-												bombCount++;
+									if (map[next_pos] == Cell.BOMB && !usedBomb[next_pos]) {
+										for (Bomb bomb2 : bl)
+											if (next_pos == bomb2.pos)
 												que.add(bomb2);
-											}
-										}
 									}
 								}
 							}
 						}
 					}
 				}
-				for (Bomb bomb : bombList)
-					if (!usedBomb[bomb.pos])
-						blockMemo[bomb.pos] |= 1 << liveDepth;
+				for (int i = 0; i < bl.size(); ++i) {
+					int pos = bl.get(i).pos;
+					if (!usedBomb[pos]) {
+						blockMemo[pos] |= 1 << liveDepth;
+					} else {
+						bl.remove(i);
+					}
+				}
 				for (int p : softBlockList) {
-					if (!softBlockClash[p])
+					if (!softBlockClash[p]) {
 						blockMemo[p] |= 1 << liveDepth;
-					softBlockClash[p] |= tmpSoftBlockClash[p];
+						softBlockClash[p] |= tmpSoftBlockClash[p];
+					}
 				}
 			}
+			Timer.end(2);
 
+			Timer.start(3);
 			int minDeadTime = liveDepth;
 			for (Character c : this.characters) {
 				if ((burstMemo[c.pos] & 1) != 0)
@@ -474,6 +475,7 @@ public class State {
 					c.deadTime = liveDFS(c.pos, 0, memo, burstMemo, blockMemo, liveDepth);
 				minDeadTime = Math.min(minDeadTime, c.deadTime);
 			}
+			Timer.end(3);
 			if (minDeadTime < liveDepth) {
 				int allyDead = 0, enemyDead = 0;
 				for (Character c : this.characters)

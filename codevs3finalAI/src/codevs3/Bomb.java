@@ -1,6 +1,10 @@
 package codevs3;
 
 public class Bomb implements Comparable<Bomb> {
+	/**
+	 * TODO 同じ箇所の爆弾をまとめられるようにする
+	 * 今のところ不具合がありそうなのは、置ける爆弾数のカウントを誤りそうだから、複数id指定できるようにする
+	 */
 	public int id, pos, limitTime, fire;
 
 	public Bomb(Bomb b) {
