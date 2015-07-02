@@ -466,10 +466,7 @@ public class State {
 			Timer.start(3);
 			int minDeadTime = liveDepth;
 			for (Character c : this.characters) {
-				if ((burstMemo[c.pos] & 1) != 0)
-					c.deadTime = 0;
-				else
-					c.deadTime = liveDFS(c.pos, 0, memo, burstMemo, blockMemo, liveDepth);
+				c.deadTime = liveDFS(c.pos, 0, memo, burstMemo, blockMemo, liveDepth);
 				minDeadTime = Math.min(minDeadTime, c.deadTime);
 			}
 			Timer.end(3);
@@ -485,13 +482,13 @@ public class State {
 					}
 				// Parameter.println(player_id + " " + minDeadTime + " " + liveDepth + " " + allyDead + " " + enemyDead);
 				if (allyDead > 0 && allyDead == enemyDead) {
-					// Parameter.println("相打");
+					// AI.debug("相打");
 					return 1;
 				} else if (allyDead > enemyDead) {
-					// Parameter.println("自詰");
+					// AI.debug("自詰");
 					return -1;
 				} else if (allyDead < enemyDead) {
-					// Parameter.println("相詰");
+					// AI.debug("相詰");
 					return 3;
 				}
 			}
@@ -506,7 +503,7 @@ public class State {
 			return memo[depth][pos];
 		if (depth == liveDepth)
 			return memo[depth][pos] = liveDepth;
-		int bit = 1 << (depth + 1);
+		int bit = 1 << depth;
 		int res = depth;
 		if ((burstMemo[pos] & bit) == 0) {
 			res = Math.max(res, liveDFS(pos, depth + 1, memo, burstMemo, blockMemo, liveDepth));
@@ -514,13 +511,15 @@ public class State {
 				return memo[depth][pos] = res;
 			}
 		}
-		for (int d : dirs) {
-			int next_pos = pos + d;
-			if (!isin(d, next_pos) || (burstMemo[next_pos] & bit) != 0 || (blockMemo[next_pos] & bit) != 0)
-				continue;
-			res = Math.max(res, liveDFS(next_pos, depth + 1, memo, burstMemo, blockMemo, liveDepth));
-			if (res == liveDepth) {
-				return memo[depth][pos] = res;
+		if (depth > 0) {
+			for (int d : dirs) {
+				int next_pos = pos + d;
+				if (!isin(d, next_pos) || (burstMemo[next_pos] & bit) != 0 || (blockMemo[next_pos] & bit) != 0)
+					continue;
+				res = Math.max(res, liveDFS(next_pos, depth + 1, memo, burstMemo, blockMemo, liveDepth));
+				if (res == liveDepth) {
+					return memo[depth][pos] = res;
+				}
 			}
 		}
 		return memo[depth][pos] = res;

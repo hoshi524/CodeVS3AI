@@ -1,6 +1,7 @@
 package codevs3;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Scanner;
 
@@ -251,5 +252,9 @@ public class AI {
 		if (characters[3].dead && characters[3].player_id == player_id)
 			++dead;
 		return dead;
+	}
+
+	final static void debug(final Object... obj) {
+		System.err.println(Arrays.deepToString(obj));
 	}
 }
