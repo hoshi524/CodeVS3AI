@@ -2,7 +2,6 @@ package codevs3;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Scanner;
 
 public class AI {
@@ -24,6 +23,8 @@ public class AI {
 		}
 	}
 
+	static final int MAX_VALUE = Integer.MAX_VALUE - (Integer.MAX_VALUE >> 2);
+	static final int MIN_VALUE = Integer.MIN_VALUE - (Integer.MIN_VALUE >> 2);
 	static final Operation NONE = new Operation(Move.NONE, false, 5);
 	static final int MAX_DEPTH = 2;
 
@@ -70,13 +71,8 @@ public class AI {
 		already.clear();
 		State state = new State(input);
 
-		// Next next = negamax(state, MAX_DEPTH, Long.MIN_VALUE, Long.MAX_VALUE, true);
-		//		Next test = mtdf(state);
-		//		if (next.value != test.value) {
-		//			System.err.println(next.value + " != " + test.value);
-		//		}
 		Next next = MTDF(state);
-		System.err.println(String.format("%3d : %20d", state.turn, next.value));
+		System.err.println(String.format("%3d : %15d", state.turn, next.value));
 
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < Parameter.PLAYER; ++i) {
@@ -87,16 +83,16 @@ public class AI {
 		return sb.toString();
 	}
 
-	private long prevG = 0;
+	private int prevG = 0;
 
 	Next MTDF(State now) {
 		already.clear();
-		long lower = Long.MIN_VALUE;
-		long upper = Long.MAX_VALUE;
-		long g = prevG;
-		Next best = new Next(Long.MIN_VALUE, operationList.get(0));
+		int lower = MIN_VALUE;
+		int upper = MAX_VALUE;
+		int g = prevG;
+		Next best = new Next(MIN_VALUE, operationList.get(0));
 		while (lower < upper) {
-			long b;
+			int b;
 			if (g == lower)
 				b = g + 1;
 			else
@@ -116,17 +112,15 @@ public class AI {
 		return best;
 	}
 
-	HashSet<Long> used = new HashSet<Long>();
-
 	class Already {
 		Next next;
-		long lower = Long.MIN_VALUE, upper = Long.MAX_VALUE;
+		int lower = MIN_VALUE, upper = MAX_VALUE;
 	}
 
 	HashMap<Long, Already> already = new HashMap<>();
 
-	Next negamax(State now, int depth, long alpha, long beta, boolean isMe) {
-		Next best = new Next(isMe ? Long.MIN_VALUE : Long.MAX_VALUE, operationList.get(0));
+	Next negamax(State now, int depth, int alpha, int beta, boolean isMe) {
+		Next best = new Next(isMe ? MIN_VALUE : MAX_VALUE, operationList.get(0));
 		if (isMe) {
 			long key = now.getHash() ^ Hash.hashMap[depth];
 			Already memo;
@@ -197,12 +191,12 @@ public class AI {
 					}
 				} else if (res == 3) {
 					// 自分が詰んだ
-					best.value = Math.min(best.value, tmp.calcFleeValue() + Long.MIN_VALUE / 4);
+					best.value = Math.min(best.value, tmp.calcFleeValue() + MIN_VALUE >> 2);
 					return best;
 				} else if (res == -1) {
 					// 相手が詰んだ
 					if (depth == 0 || dead(tmp.characters, Parameter.ENEMY_ID) > 0) {
-						best.value = Math.min(best.value, tmp.calcFleeValue() + Long.MAX_VALUE / 4);
+						best.value = Math.min(best.value, tmp.calcFleeValue() + MAX_VALUE >> 2);
 					} else {
 						tumiList.add(tmp);
 					}

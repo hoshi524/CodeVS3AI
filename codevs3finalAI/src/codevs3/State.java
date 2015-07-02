@@ -27,9 +27,9 @@ public class State {
 	private final static int[] mapPosition = new int[Parameter.XY];
 	static {
 		// 角は評価を下げておく
-		mapPosition[0] = mapPosition[1] = mapPosition[11] = mapPosition[12] = mapPosition[13] = mapPosition[25] = mapPosition[117] = mapPosition[129] = mapPosition[130] = mapPosition[131] = mapPosition[141] = mapPosition[142] = Integer.MIN_VALUE / 4;
+		mapPosition[0] = mapPosition[1] = mapPosition[11] = mapPosition[12] = mapPosition[13] = mapPosition[25] = mapPosition[117] = mapPosition[129] = mapPosition[130] = mapPosition[131] = mapPosition[141] = mapPosition[142] = -0xff;
 	}
-	static long AiutiValue;
+	static int AiutiValue;
 	static int allyDanger, enemyDanger;
 	static int ac1, ac2;
 	int turn;
@@ -63,11 +63,10 @@ public class State {
 	State(String str) {
 		{// Input
 			Scanner sc = new Scanner(str);
-
 			{
-				long time = sc.nextLong(); // time
+				int time = sc.nextInt(); // time
 				// 時間がある時は相打ちを狙わない、時間がない時は積極的に相打ちを狙う
-				AiutiValue = time > 100000 ? Long.MIN_VALUE / 8 : Long.MAX_VALUE / 8;
+				AiutiValue = time > 100000 ? AI.MIN_VALUE >> 4 : AI.MAX_VALUE >> 4;
 			}
 			turn = sc.nextInt(); // turn
 			sc.nextInt(); // max_turn
@@ -328,20 +327,18 @@ public class State {
 		}
 		for (int p1 = 0; p1 < Parameter.XY; ++p1) {
 			for (int p2 = 0; p2 < Parameter.XY; ++p2) {
-				length[p1][p2] = -0xfffff
-						* Math.max(0, 10 - (Math.abs(div[p1] - div[p2]) + Math.abs(mod[p1] - mod[p2])));
+				length[p1][p2] = -0xff * Math.max(0, 10 - (Math.abs(div[p1] - div[p2]) + Math.abs(mod[p1] - mod[p2])));
 			}
 		}
 	}
 
-	long calcValue() {
+	int calcValue() {
 		Character c1 = characters[ac1], c2 = characters[ac2];
-		return length[c1.pos][c2.pos] - allyDanger + enemyDanger + (long) mapPosition[c1.pos] + c1.bombCount
-				+ (long) mapPosition[c2.pos] + c2.bombCount
-				+ ((long) Integer.MAX_VALUE * (c1.bomb + c1.fire + c2.bomb + c2.fire));
+		return length[c1.pos][c2.pos] - allyDanger + enemyDanger + mapPosition[c1.pos] + c1.bombCount
+				+ mapPosition[c2.pos] + c2.bombCount + ((c1.bomb + c1.fire + c2.bomb + c2.fire) << 4);
 	}
 
-	long calcFleeValue() {
+	int calcFleeValue() {
 		return -allyDanger;
 	}
 
@@ -379,7 +376,7 @@ public class State {
 
 				bombList.add(new Bomb(character.id, character.pos, operation.burstTime, character.fire));
 				map[character.pos] = Cell.BOMB;
-				character.bombCount |= 0xffffffL << depth;
+				character.bombCount |= 0xffff << depth;
 				++fieldBombCount[character.id];
 			}
 			now_danger = enemyDanger(player_id);
@@ -543,7 +540,7 @@ public class State {
 			int enemyDanger = 0;
 			while (!que.isEmpty()) {
 				int now_pos = que.poll();
-				enemyDanger += enemyMap[now_pos] * Math.max(10 - burstMap[now_pos], 0) - 0xff;
+				enemyDanger += enemyMap[now_pos] * Math.max(10 - burstMap[now_pos], 0) - 0xf;
 				for (int d : dirs) {
 					int next_pos = now_pos + d;
 					if (isin(d, next_pos) && map[next_pos].canMove() && enemyMap[next_pos] < enemyMap[now_pos]) {
