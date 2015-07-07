@@ -28,7 +28,6 @@ public class State {
 		mapPosition[0] = mapPosition[1] = mapPosition[11] = mapPosition[12] = mapPosition[13] = mapPosition[25] = mapPosition[117] = mapPosition[129] = mapPosition[130] = mapPosition[131] = mapPosition[141] = mapPosition[142] = -0xff;
 	}
 	static int AiutiValue;
-	static int allyDanger, enemyDanger;
 	static int ac1, ac2;
 	int turn;
 
@@ -50,9 +49,10 @@ public class State {
 		System.arraycopy(s.map, 0, map, 0, Parameter.XY);
 		System.arraycopy(s.fieldBombCount, 0, fieldBombCount, 0, Parameter.CHARACTER_NUM);
 
-		for (int i = 0; i < Parameter.CHARACTER_NUM; ++i) {
-			characters[i] = new Character(s.characters[i]);
-		}
+		characters[0] = new Character(s.characters[0]);
+		characters[1] = new Character(s.characters[1]);
+		characters[2] = new Character(s.characters[2]);
+		characters[3] = new Character(s.characters[3]);
 		for (Bomb b : s.bombList) {
 			bombList.add(new Bomb(b));
 		}
@@ -166,16 +166,19 @@ public class State {
 	}
 
 	void step() {
-		for (Character c : characters) {
-			if (map[c.pos] == Cell.NUMBER)
-				c.bomb++;
-			else if (map[c.pos] == Cell.POWER)
-				c.fire++;
-		}
-		for (Character c : characters) {
-			if (map[c.pos] == Cell.NUMBER || map[c.pos] == Cell.POWER)
-				map[c.pos] = Cell.BLANK;
-		}
+		if (map[characters[0].pos] == Cell.NUMBER) ++characters[0].bomb;
+		else if (map[characters[0].pos] == Cell.POWER) ++characters[0].fire;
+		if (map[characters[1].pos] == Cell.NUMBER) ++characters[1].bomb;
+		else if (map[characters[1].pos] == Cell.POWER) ++characters[1].fire;
+		if (map[characters[2].pos] == Cell.NUMBER) ++characters[2].bomb;
+		else if (map[characters[2].pos] == Cell.POWER) ++characters[2].fire;
+		if (map[characters[3].pos] == Cell.NUMBER) ++characters[3].bomb;
+		else if (map[characters[3].pos] == Cell.POWER) ++characters[3].fire;
+
+		if (map[characters[0].pos] == Cell.NUMBER || map[characters[0].pos] == Cell.POWER) map[characters[0].pos] = Cell.BLANK;
+		if (map[characters[1].pos] == Cell.NUMBER || map[characters[1].pos] == Cell.POWER) map[characters[1].pos] = Cell.BLANK;
+		if (map[characters[2].pos] == Cell.NUMBER || map[characters[2].pos] == Cell.POWER) map[characters[2].pos] = Cell.BLANK;
+		if (map[characters[3].pos] == Cell.NUMBER || map[characters[3].pos] == Cell.POWER) map[characters[3].pos] = Cell.BLANK;
 
 		int size = bombList.size();
 		boolean use[] = new boolean[size];
@@ -253,9 +256,11 @@ public class State {
 			}
 		}
 
-		for (Character c : characters)
-			if (attacked[c.pos])
-				c.dead = true;
+		if (attacked[characters[0].pos]) characters[0].dead = true;
+		if (attacked[characters[1].pos]) characters[1].dead = true;
+		if (attacked[characters[2].pos]) characters[2].dead = true;
+		if (attacked[characters[3].pos]) characters[3].dead = true;
+
 		for (int pos : softBlockList)
 			map[pos] = Cell.BLANK;
 		ArrayList<Bomb> next_bl = new ArrayList<Bomb>();
@@ -336,12 +341,12 @@ public class State {
 
 	int calcValue() {
 		Character c1 = characters[ac1], c2 = characters[ac2];
-		return length[c1.pos][c2.pos] - allyDanger + enemyDanger + mapPosition[c1.pos] + c1.bombCount
-				+ mapPosition[c2.pos] + c2.bombCount + ((c1.bomb + c1.fire + c2.bomb + c2.fire) << 4);
+		return length[c1.pos][c2.pos] + mapPosition[c1.pos] + c1.bombCount + mapPosition[c2.pos] + c2.bombCount
+				+ ((c1.bomb + c1.fire + c2.bomb + c2.fire) << 4);
 	}
 
 	int calcFleeValue() {
-		return -allyDanger;
+		return calcValue();
 	}
 
 	int operations(Operation[] operations, int player_id, int depth) {
@@ -352,14 +357,12 @@ public class State {
 			Operation operation = operations[character.id & 1];
 			int next_pos = character.pos + operation.move.dir;
 			if (operation.move != Move.NONE && (!isin(operation.move.dir, next_pos) || map[next_pos].cantMove())) {
-				// Parameter.println("移不");
 				return 0;
 			}
 			character.pos = next_pos;
 		}
 
 		// 爆弾処理
-		int now_danger;
 		if (operations[0].magic || operations[1].magic) {
 			int[] posBuf = new int[2], fireBuf = new int[2];
 			int baseDanger = enemyDanger(player_id);
@@ -368,8 +371,7 @@ public class State {
 				Operation operation = operations[character.id & 1];
 				if (character.player_id != player_id || !operation.magic)
 					continue;
-				if (fieldBombCount[character.id] >= character.bomb || map[character.pos] == Cell.BOMB) {
-					// Parameter.println("魔重複 or 魔不");
+				if (fieldBombCount[character.id] >= character.bomb) {
 					return 0;
 				}
 				posBuf[character.id & 1] = character.pos;
@@ -381,20 +383,13 @@ public class State {
 				++fieldBombCount[character.id];
 			}
 			burstMap = null;
-			now_danger = enemyDanger(player_id);
+			int now_danger = enemyDanger(player_id);
 			//			if (AI.target)
 			//				AI.debug(baseDanger, now_danger);
 			if (baseDanger >= now_danger && !softBlockBomb(posBuf, fireBuf)) {
-				// Parameter.println("魔無効");
 				return -2;
 			}
-		} else {
-			now_danger = enemyDanger(player_id);
 		}
-		if (player_id == Parameter.MY_ID)
-			enemyDanger = now_danger;
-		else
-			allyDanger = now_danger;
 
 		{// liveDFS
 			int memo[][] = new int[Parameter.maxLiveDepth + 1][Parameter.XY];
@@ -483,19 +478,14 @@ public class State {
 					}
 				// Parameter.println(player_id + " " + minDeadTime + " " + liveDepth + " " + allyDead + " " + enemyDead);
 				if (allyDead > 0 && allyDead == enemyDead) {
-					// AI.debug("相打");
 					return 1;
 				} else if (allyDead > enemyDead) {
-					// AI.debug("自詰");
 					return -1;
 				} else if (allyDead < enemyDead) {
-					// AI.debug("相詰");
 					return 3;
 				}
 			}
 		}
-
-		// Parameter.println("正常");
 		return 2;
 	}
 
