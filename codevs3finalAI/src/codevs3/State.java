@@ -420,9 +420,9 @@ public class State {
 						for (Bomb bomb2 : bl)
 							if (bomb.pos == bomb2.pos)
 								que[qs++] = bomb2;
+						usedBomb[bomb.pos] = true;
 						while (qi < qs) {
 							Bomb bb = que[qi++];
-							usedBomb[bb.pos] = true;
 							burstMemo[bb.pos] |= 1 << liveDepth;
 							for (int d : dirs) {
 								int next_pos = bb.pos;
@@ -436,6 +436,7 @@ public class State {
 										break;
 									}
 									if (map[next_pos] == Cell.BOMB && !usedBomb[next_pos]) {
+										usedBomb[next_pos] = true;
 										for (Bomb bomb2 : bl)
 											if (next_pos == bomb2.pos)
 												que[qs++] = bomb2;

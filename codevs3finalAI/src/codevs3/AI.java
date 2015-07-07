@@ -68,8 +68,11 @@ public class AI {
 	}
 
 	public String think(String input) {
+		for (int i = 0; i <= MAX_DEPTH; ++i)
+			already[i].clear();
 		State state = new State(input);
-		Next next = MTDF(state);
+		// Next next = MTDF(state);
+		Next next = negamax(state, MAX_DEPTH, MIN_VALUE, MAX_VALUE, true);
 		System.err.println(String.format("%3d : %15d", state.turn, next.value));
 
 		StringBuilder sb = new StringBuilder();
@@ -80,30 +83,31 @@ public class AI {
 		return sb.toString();
 	}
 
+	/*
+	 * 何かバグらせていそう
+	 * negamax(state, MAX_DEPTH, MIN_VALUE, MAX_VALUE, true)
+	 * と結果が一致して性能が良いことをテストしないと・・・
+	 */
 	Next MTDF(State now) {
-		for (int i = 0; i <= MAX_DEPTH; ++i)
-			already[i].clear();
 		int lower = MIN_VALUE;
 		int upper = MAX_VALUE;
 		int g = 0;
-		Next best = new Next(MIN_VALUE, operationList[0]);
+		Next n = new Next(MIN_VALUE, operationList[0]);
 		while (lower < upper) {
 			int b;
 			if (g == lower)
 				b = g + 1;
 			else
 				b = g;
-			Next next = negamax(now, MAX_DEPTH, b - 1, b, true);
-			g = next.value;
-			if (next.value < b)
+			n = negamax(now, MAX_DEPTH, b - 1, b, true);
+			g = n.value;
+			if (g < b)
 				upper = g;
 			else
 				lower = g;
-			if (best.value < next.value) {
-				best = next;
-			}
+			// debug(lower, upper);
 		}
-		return best;
+		return n;
 	}
 
 	class Already {
@@ -119,17 +123,21 @@ public class AI {
 		}
 	}
 
-	// static boolean target = false;
+	static boolean target = false;
 	Next negamax(State now, int depth, int alpha, int beta, boolean isMe) {
 		Next best = new Next(isMe ? MIN_VALUE : MAX_VALUE, operationList[0]);
 		if (isMe) {
 			long key = now.getHash();
 			Already memo = already[depth].get(key);
 			if (memo != null) {
-				if (beta <= memo.lower)
+				if (beta < memo.lower) {
+					// debug("beta", depth, beta, memo.lower);
 					return new Next(memo.lower, memo.next.operations);
-				if (memo.upper <= alpha)
+				}
+				if (memo.upper < alpha) {
+					// debug("alpha", depth, memo.upper, alpha);
 					return new Next(memo.upper, memo.next.operations);
+				}
 				alpha = Math.max(alpha, memo.lower);
 				beta = Math.min(beta, memo.upper);
 			} else {
@@ -141,7 +149,11 @@ public class AI {
 				int res = tmp.operations(operations, Parameter.MY_ID, depth);
 				if (res == 0 || res == -1 || res == -2)
 					continue;
-				// target = operations[0] == this.operations[4] && operations[1] == this.operations[5];
+				//				if (depth == MAX_DEPTH)
+				//					target = operations[0] == this.operations[6] && operations[1] == this.operations[6];
+				//				if (target) {
+				//					debug("ally", depth, operations, res);
+				//				}
 				Next n = new Next(negamax(tmp, depth, alpha, beta, !isMe).value, operations);
 				if (best.value < n.value) {
 					best = n;
@@ -164,8 +176,8 @@ public class AI {
 			for (Operation[] operations : operationList) {
 				State tmp = new State(now);
 				int res = tmp.operations(operations, Parameter.ENEMY_ID, depth);
-				//				if (MAX_DEPTH == depth && target) {
-				//					debug(depth, operations, res);
+				//				if (target) {
+				//					debug("enemy", depth, operations, res);
 				//				}
 				if (res == 0 || res == -2) {
 					// 不正な行動
