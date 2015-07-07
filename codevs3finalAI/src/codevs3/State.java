@@ -1,11 +1,9 @@
 package codevs3;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Queue;
 import java.util.Scanner;
 
 public class State {
@@ -214,6 +212,7 @@ public class State {
 			}
 		}
 		List<Integer> softBlockList = new ArrayList<Integer>();
+		Bomb que[] = new Bomb[size];
 		for (int b1 = 0; b1 < size; ++b1) {
 			if (use[b1])
 				continue;
@@ -222,11 +221,11 @@ public class State {
 				--b.limitTime;
 				continue;
 			}
-			Queue<Bomb> que = new ArrayDeque<Bomb>();
-			que.add(b);
+			int qi = 0, qs = 1;
+			que[0] = b;
 			use[b1] = true;
-			while (!que.isEmpty()) {
-				Bomb bb = que.poll();
+			while (qi < qs) {
+				Bomb bb = que[qi++];
 				attacked[bb.pos] = true;
 				for (int d : dirs) {
 					int next_pos = bb.pos;
@@ -245,7 +244,7 @@ public class State {
 								Bomb nb = bombList.get(b2);
 								if (next_pos == nb.pos && !use[b2]) {
 									use[b2] = true;
-									que.add(nb);
+									que[qs++] = nb;
 								}
 							}
 						}
@@ -281,16 +280,19 @@ public class State {
 		int size = bombList.size();
 		boolean use[] = new boolean[size];
 		Collections.sort(bombList);
-		Queue<Bomb> bq = new ArrayDeque<Bomb>();
+		Bomb que[] = new Bomb[size];
+		int qi, qs;
 
 		for (int i = 0; i < size; ++i) {
 			if (use[i])
 				continue;
-			bq.add(bombList.get(i));
+			que[0] = bombList.get(i);
+			qi = 0;
+			qs = 1;
 			use[i] = true;
 			int limitTime = bombList.get(i).limitTime;
-			while (!bq.isEmpty()) {
-				Bomb bb = bq.poll();
+			while (qi < qs) {
+				Bomb bb = que[qi++];
 				burstMap[bb.pos] = Math.min(burstMap[bb.pos], limitTime);
 
 				for (int d : dirs) {
@@ -307,7 +309,7 @@ public class State {
 								Bomb b = bombList.get(k);
 								if (next_pos == b.pos && !use[k]) {
 									use[k] = true;
-									bq.add(b);
+									que[qs++] = b;
 								}
 							}
 						}
@@ -356,7 +358,6 @@ public class State {
 			character.pos = next_pos;
 		}
 
-		Timer.start(4);
 		// 爆弾処理
 		int now_danger;
 		if (operations[0].magic || operations[1].magic) {
@@ -379,7 +380,10 @@ public class State {
 				character.bombCount |= 0xffff << depth;
 				++fieldBombCount[character.id];
 			}
+			burstMap = null;
 			now_danger = enemyDanger(player_id);
+			//			if (AI.target)
+			//				AI.debug(baseDanger, now_danger);
 			if (baseDanger >= now_danger && !softBlockBomb(posBuf, fireBuf)) {
 				// Parameter.println("魔無効");
 				return -2;
@@ -391,10 +395,8 @@ public class State {
 			enemyDanger = now_danger;
 		else
 			allyDanger = now_danger;
-		Timer.end(4);
 
 		{// liveDFS
-			Timer.start(2);
 			int memo[][] = new int[Parameter.maxLiveDepth + 1][Parameter.XY];
 			for (int i = 0; i < Parameter.maxLiveDepth; ++i) {
 				Arrays.fill(memo[i], -1);
@@ -402,27 +404,29 @@ public class State {
 			int burstMemo[] = new int[Parameter.XY];
 			int blockMemo[] = new int[Parameter.XY];
 
-			ArrayDeque<Integer> softBlockList = new ArrayDeque<Integer>();
+			int softBlockList[] = new int[Parameter.XY], sfi = 0;
 			for (int pos = 0; pos < Parameter.XY; ++pos) {
 				if (map[pos] == Cell.HARD_BLOCK) {
 					blockMemo[pos] = -1;
 				} else if (map[pos] == Cell.SOFT_BLOCK) {
-					softBlockList.add(pos);
+					softBlockList[sfi++] = pos;
 				}
 			}
+			softBlockList = Arrays.copyOf(softBlockList, sfi);
 			boolean softBlockClash[] = new boolean[Parameter.XY], tmpSoftBlockClash[] = new boolean[Parameter.XY];
 			boolean usedBomb[] = new boolean[Parameter.XY];
+			Bomb que[] = new Bomb[Parameter.XY];
 			List<Bomb> bl = new ArrayList<>(bombList);
 			int liveDepth = 0;
 			for (; liveDepth < Parameter.maxLiveDepth && !bl.isEmpty(); ++liveDepth) {
 				for (Bomb bomb : bl) {
 					if (bomb.limitTime == liveDepth && !usedBomb[bomb.pos]) {
-						Queue<Bomb> que = new ArrayDeque<Bomb>();
+						int qi = 0, qs = 0;
 						for (Bomb bomb2 : bl)
 							if (bomb.pos == bomb2.pos)
-								que.add(bomb2);
-						while (!que.isEmpty()) {
-							Bomb bb = que.poll();
+								que[qs++] = bomb2;
+						while (qi < qs) {
+							Bomb bb = que[qi++];
 							usedBomb[bb.pos] = true;
 							burstMemo[bb.pos] |= 1 << liveDepth;
 							for (int d : dirs) {
@@ -439,7 +443,7 @@ public class State {
 									if (map[next_pos] == Cell.BOMB && !usedBomb[next_pos]) {
 										for (Bomb bomb2 : bl)
 											if (next_pos == bomb2.pos)
-												que.add(bomb2);
+												que[qs++] = bomb2;
 									}
 								}
 							}
@@ -461,15 +465,12 @@ public class State {
 					}
 				}
 			}
-			Timer.end(2);
 
-			Timer.start(3);
 			int minDeadTime = liveDepth;
 			for (Character c : this.characters) {
 				c.deadTime = liveDFS(c.pos, 0, memo, burstMemo, blockMemo, liveDepth);
 				minDeadTime = Math.min(minDeadTime, c.deadTime);
 			}
-			Timer.end(3);
 			if (minDeadTime < liveDepth) {
 				int allyDead = 0, enemyDead = 0;
 				for (Character c : this.characters)
@@ -527,30 +528,32 @@ public class State {
 
 	private int enemyDanger(int player_ip) {
 		int burstMap[] = calcBurstMap();
-		int res = 0;
+		int res = 0, que[] = new int[0x2f], qi, qs;
 		for (Character c : characters) {
 			if (c.player_id == player_ip)
 				continue;
 
 			int enemyMap[] = new int[Parameter.XY];
-			ArrayDeque<Integer> que = new ArrayDeque<Integer>();
 			enemyMap[c.pos] = 4;
-			que.add(c.pos);
-			int enemyDanger = 0;
-			while (!que.isEmpty()) {
-				int now_pos = que.poll();
-				enemyDanger += enemyMap[now_pos] * Math.max(10 - burstMap[now_pos], 0) - 0xf;
+			que[0] = c.pos;
+			qi = 0;
+			qs = 1;
+			int enemyDanger = 0, count = 0;
+			while (qi < qs) {
+				++count;
+				int now_pos = que[qi++];
+				enemyDanger += enemyMap[now_pos] * Math.max(10 - burstMap[now_pos], 0);
 				for (int d : dirs) {
 					int next_pos = now_pos + d;
 					if (isin(d, next_pos) && map[next_pos].canMove() && enemyMap[next_pos] < enemyMap[now_pos]) {
 						enemyMap[next_pos] = enemyMap[now_pos] - 1;
 						if (enemyMap[next_pos] > 1) {
-							que.add(next_pos);
+							que[qs++] = next_pos;
 						}
 					}
 				}
 			}
-			res += enemyDanger;
+			res += enemyDanger + 1000 / count;
 		}
 		return res;
 	}

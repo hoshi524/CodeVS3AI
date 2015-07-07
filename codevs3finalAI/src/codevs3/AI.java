@@ -67,7 +67,6 @@ public class AI {
 	long start;
 
 	public String think(String input) {
-		Timer.start(0);
 		start = System.nanoTime();
 		already.clear();
 		State state = new State(input);
@@ -79,7 +78,6 @@ public class AI {
 		for (int i = 0; i < Parameter.PLAYER; ++i) {
 			sb.append(next.operations[i].toString()).append("\n");
 		}
-		Timer.end(0);
 		Timer.print();
 		return sb.toString();
 	}
@@ -119,7 +117,7 @@ public class AI {
 	}
 
 	HashMap<Long, Already> already = new HashMap<>();
-
+	static boolean target = false;
 	Next negamax(State now, int depth, int alpha, int beta, boolean isMe) {
 		Next best = new Next(isMe ? MIN_VALUE : MAX_VALUE, operationList.get(0));
 		if (isMe) {
@@ -139,11 +137,10 @@ public class AI {
 			}
 			for (Operation[] operations : operationList) {
 				State tmp = new State(now);
-				Timer.start(1);
 				int res = tmp.operations(operations, Parameter.MY_ID, depth);
-				Timer.end(1);
 				if (res == 0 || res == -1 || res == -2)
 					continue;
+				//target = operations[0] == this.operations[2] && operations[1] == this.operations[6];
 				Next n = new Next(negamax(tmp, depth, alpha, beta, !isMe).value, operations);
 				if (best.value < n.value) {
 					best = n;
@@ -164,16 +161,16 @@ public class AI {
 
 			for (Operation[] operations : operationList) {
 				State tmp = new State(now);
-				Timer.start(1);
 				int res = tmp.operations(operations, Parameter.ENEMY_ID, depth);
-				Timer.end(1);
+				//				if (MAX_DEPTH == depth && target) {
+				//					debug(operations, res);
+				//				}
 				if (res == 0 || res == -2) {
 					// 不正な行動
 					// 魔法が有効じゃない
 					continue;
 				}
 				tmp.step();
-				// Parameter.print(tmp);
 				if (res == 2) {
 					// どっちも詰んでない
 					if (depth == 0) {
