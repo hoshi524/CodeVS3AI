@@ -150,7 +150,7 @@ public class AI {
 				if (res == 0 || res == -1 || res == -2)
 					continue;
 				//				if (depth == MAX_DEPTH)
-				//					target = operations[0] == this.operations[6] && operations[1] == this.operations[6];
+				//					target = operations[0] == this.operations[7] && operations[1] == this.operations[7];
 				//				if (target) {
 				//					debug("ally", depth, operations, res);
 				//				}
@@ -194,9 +194,7 @@ public class AI {
 					}
 				} else if (res == 1) {
 					// 相打ち
-					if (depth == 0
-							|| (dead(tmp.characters, Parameter.ENEMY_ID) > 0 && dead(tmp.characters, Parameter.ENEMY_ID) == dead(
-									tmp.characters, Parameter.MY_ID))) {
+					if (depth == 0 || dead(tmp.characters, Parameter.ENEMY_ID) > 0) {
 						best.value = Math.min(best.value, tmp.calcFleeValue() + State.AiutiValue);
 					} else {
 						aiutiList.add(tmp);

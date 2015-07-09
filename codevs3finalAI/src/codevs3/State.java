@@ -31,6 +31,7 @@ public class State {
 	static int ac1, ac2;
 	int turn;
 
+	Cell prevmap[] = new Cell[Parameter.XY];
 	Cell map[] = new Cell[Parameter.XY];
 
 	Character characters[] = new Character[Parameter.CHARACTER_NUM];
@@ -47,6 +48,7 @@ public class State {
 	State(State s) {
 		this.turn = s.turn;
 		System.arraycopy(s.map, 0, map, 0, Parameter.XY);
+		System.arraycopy(s.prevmap, 0, prevmap, 0, Parameter.XY);
 		System.arraycopy(s.fieldBombCount, 0, fieldBombCount, 0, Parameter.CHARACTER_NUM);
 
 		characters[0] = new Character(s.characters[0]);
@@ -163,6 +165,7 @@ public class State {
 			ac1 = 2;
 			ac2 = 3;
 		}
+		prevmap = Arrays.copyOf(map, map.length);
 	}
 
 	void step() {
@@ -274,6 +277,7 @@ public class State {
 		}
 		bombList = next_bl;
 		burstMap = null;
+		prevmap = Arrays.copyOf(map, map.length);
 	}
 
 	int[] calcBurstMap() {
@@ -356,7 +360,7 @@ public class State {
 				continue;
 			Operation operation = operations[character.id & 1];
 			int next_pos = character.pos + operation.move.dir;
-			if (operation.move != Move.NONE && (!isin(operation.move.dir, next_pos) || map[next_pos].cantMove())) {
+			if (operation.move != Move.NONE && (!isin(operation.move.dir, next_pos) || prevmap[next_pos].cantMove())) {
 				return 0;
 			}
 			character.pos = next_pos;
@@ -384,8 +388,6 @@ public class State {
 			}
 			burstMap = null;
 			int now_danger = enemyDanger(player_id);
-			//			if (AI.target)
-			//				AI.debug(baseDanger, now_danger);
 			if (baseDanger >= now_danger && !softBlockBomb(posBuf, fireBuf)) {
 				return -2;
 			}
