@@ -71,9 +71,15 @@ public class AI {
 		for (int i = 0; i <= MAX_DEPTH; ++i)
 			already[i].clear();
 		State state = new State(input);
-		// Next next = MTDF(state);
 		Next next = negamax(state, MAX_DEPTH, MIN_VALUE, MAX_VALUE, true);
-		System.err.println(String.format("%3d : %15d", state.turn, next.value));
+		if (false) {
+			Next test = MTDF(state);
+			if (test.value != next.value) {
+				debug(next.value, next.operations);
+				debug(test.value, test.operations);
+			}
+		}
+		System.err.println(String.format("%3d : %12d", state.turn, next.value));
 
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < Parameter.PLAYER; ++i) {
@@ -89,23 +95,22 @@ public class AI {
 	 * と結果が一致して性能が良いことをテストしないと・・・
 	 */
 	Next MTDF(State now) {
+		for (int i = 0; i <= MAX_DEPTH; ++i)
+			already[i].clear();
 		int lower = MIN_VALUE;
 		int upper = MAX_VALUE;
-		int g = 0;
+		int bound = 0;
 		Next n = new Next(MIN_VALUE, operationList[0]);
 		while (lower < upper) {
-			int b;
-			if (g == lower)
-				b = g + 1;
+			n = negamax(now, MAX_DEPTH, bound - 1, bound, true);
+			if (n.value < bound)
+				upper = n.value;
 			else
-				b = g;
-			n = negamax(now, MAX_DEPTH, b - 1, b, true);
-			g = n.value;
-			if (g < b)
-				upper = g;
+				lower = n.value;
+			if (lower == n.value)
+				bound = n.value + 1;
 			else
-				lower = g;
-			// debug(lower, upper);
+				bound = n.value;
 		}
 		return n;
 	}

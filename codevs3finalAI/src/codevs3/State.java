@@ -169,14 +169,10 @@ public class State {
 	}
 
 	void step() {
-		if (map[characters[0].pos] == Cell.NUMBER) ++characters[0].bomb;
-		else if (map[characters[0].pos] == Cell.POWER) ++characters[0].fire;
-		if (map[characters[1].pos] == Cell.NUMBER) ++characters[1].bomb;
-		else if (map[characters[1].pos] == Cell.POWER) ++characters[1].fire;
-		if (map[characters[2].pos] == Cell.NUMBER) ++characters[2].bomb;
-		else if (map[characters[2].pos] == Cell.POWER) ++characters[2].fire;
-		if (map[characters[3].pos] == Cell.NUMBER) ++characters[3].bomb;
-		else if (map[characters[3].pos] == Cell.POWER) ++characters[3].fire;
+		if (map[characters[0].pos] == Cell.NUMBER) ++characters[0].bomb; else if (map[characters[0].pos] == Cell.POWER) ++characters[0].fire;
+		if (map[characters[1].pos] == Cell.NUMBER) ++characters[1].bomb; else if (map[characters[1].pos] == Cell.POWER) ++characters[1].fire;
+		if (map[characters[2].pos] == Cell.NUMBER) ++characters[2].bomb; else if (map[characters[2].pos] == Cell.POWER) ++characters[2].fire;
+		if (map[characters[3].pos] == Cell.NUMBER) ++characters[3].bomb; else if (map[characters[3].pos] == Cell.POWER) ++characters[3].fire;
 
 		if (map[characters[0].pos] == Cell.NUMBER || map[characters[0].pos] == Cell.POWER) map[characters[0].pos] = Cell.BLANK;
 		if (map[characters[1].pos] == Cell.NUMBER || map[characters[1].pos] == Cell.POWER) map[characters[1].pos] = Cell.BLANK;
