@@ -434,8 +434,7 @@ public class State {
 									if (map[next_pos] == Cell.SOFT_BLOCK && !softBlockClash[next_pos]) {
 										tmpSoftBlockClash[next_pos] = true;
 										break;
-									}
-									if (map[next_pos] == Cell.BOMB && !usedBomb[next_pos]) {
+									} else if (map[next_pos] == Cell.BOMB && !usedBomb[next_pos]) {
 										usedBomb[next_pos] = true;
 										for (Bomb bomb2 : bl)
 											if (next_pos == bomb2.pos)
@@ -451,7 +450,7 @@ public class State {
 					if (!usedBomb[pos]) {
 						blockMemo[pos] |= 1 << liveDepth;
 					} else {
-						bl.remove(i);
+						bl.remove(i--);
 					}
 				}
 				for (int p : softBlockList) {
@@ -471,14 +470,12 @@ public class State {
 				int allyDead = 0, enemyDead = 0;
 				for (Character c : this.characters)
 					if (c.deadTime == minDeadTime) {
-						// Parameter.println("dead id: " + characters[i].id);
 						if (c.player_id == player_id)
 							++allyDead;
 						else
 							++enemyDead;
 					}
-				// Parameter.println(player_id + " " + minDeadTime + " " + liveDepth + " " + allyDead + " " + enemyDead);
-				if (allyDead > 0 && allyDead == enemyDead) {
+				if (allyDead == enemyDead) {
 					return 1;
 				} else if (allyDead > enemyDead) {
 					return -1;
