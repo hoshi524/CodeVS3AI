@@ -133,47 +133,33 @@ public class AI {
 	Next negamax(State now, int depth, int alpha, int beta) {
 		boolean isMe = depth % 2 == 1;
 		Next best = new Next(isMe ? MIN_VALUE : MAX_VALUE, operationList[0]);
+		long key = now.getHash();
+		Already memo = already[depth].get(key);
+		if (memo != null) {
+			if (beta < memo.lower)
+				return new Next(memo.lower, memo.next.operations);
+			if (memo.upper < alpha)
+				return new Next(memo.upper, memo.next.operations);
+			alpha = Math.max(alpha, memo.lower);
+			beta = Math.min(beta, memo.upper);
+		} else {
+			memo = new Already();
+			already[depth].put(key, memo);
+		}
 		if (isMe) {
-			long key = now.getHash();
-			Already memo = already[depth].get(key);
-			if (memo != null) {
-				if (beta < memo.lower) {
-					// debug("beta", depth, beta, memo.lower);
-					return new Next(memo.lower, memo.next.operations);
-				}
-				if (memo.upper < alpha) {
-					// debug("alpha", depth, memo.upper, alpha);
-					return new Next(memo.upper, memo.next.operations);
-				}
-				alpha = Math.max(alpha, memo.lower);
-				beta = Math.min(beta, memo.upper);
-			} else {
-				memo = new Already();
-				already[depth].put(key, memo);
-			}
 			for (Operation[] operations : operationList) {
 				State tmp = new State(now);
 				int res = tmp.operations(operations, Parameter.MY_ID, depth);
 				if (res == 0 || res == -1 || res == -2)
 					continue;
-				//				if (depth == MAX_DEPTH)
-				//					target = operations[0] == this.operations[7] && operations[1] == this.operations[7];
-				//				if (target) {
-				//					debug("ally", depth, operations, res);
-				//				}
 				Next n = new Next(negamax(tmp, depth - 1, alpha, beta).value, operations);
 				if (best.value < n.value) {
 					best = n;
-					if (best.value >= beta) {
-						memo.next = best;
-						memo.lower = best.value;
-						return best;
-					}
+					if (best.value >= beta)
+						break;
 					alpha = Math.max(alpha, best.value);
 				}
 			}
-			memo.next = best;
-			memo.lower = memo.upper = best.value;
 		} else {
 			ArrayList<State> aiutiList = new ArrayList<>();
 			ArrayList<State> hutuuList = new ArrayList<>();
@@ -183,43 +169,29 @@ public class AI {
 			for (Operation[] operations : operationList) {
 				State tmp = new State(now);
 				int res = tmp.operations(operations, Parameter.ENEMY_ID, depth);
-				//				if (target) {
-				//					debug("enemy", depth, operations, res);
-				//				}
-				if (res == 0 || res == -2) {
-					// 不正な行動
-					// 魔法が有効じゃない
+				if (res == 0 || res == -2)
 					continue;
-				}
 				tmp.step();
 				if (res == 2) {
-					// どっちも詰んでない
-					if (depth == 0) {
+					if (depth == 0)
 						best.value = Math.min(best.value, tmp.calcValue());
-					} else {
+					else
 						hutuuList.add(tmp);
-					}
 				} else if (res == 1) {
-					// 相打ち
-					if (depth == 0 || dead(tmp.characters, Parameter.ENEMY_ID) > 0) {
+					if (depth == 0 || dead(tmp.characters, Parameter.ENEMY_ID) > 0)
 						best.value = Math.min(best.value, tmp.calcFleeValue() + State.AiutiValue);
-					} else {
+					else
 						aiutiList.add(tmp);
-					}
 				} else if (res == 3) {
-					// 自分が詰んだ
-					if (depth == 0 || dead(tmp.characters, Parameter.MY_ID) > 0) {
+					if (depth == 0 || dead(tmp.characters, Parameter.MY_ID) > 0)
 						best.value = Math.min(best.value, tmp.calcFleeValue() + (MIN_VALUE >> 2));
-					} else {
+					else
 						loseList.add(tmp);
-					}
 				} else if (res == -1) {
-					// 相手が詰んだ
-					if (depth == 0 || dead(tmp.characters, Parameter.ENEMY_ID) > 0) {
+					if (depth == 0 || dead(tmp.characters, Parameter.ENEMY_ID) > 0)
 						best.value = Math.min(best.value, tmp.calcFleeValue() + (MAX_VALUE >> 2));
-					} else {
+					else
 						winList.add(tmp);
-					}
 				}
 			}
 			if (depth > 0) {
@@ -234,14 +206,20 @@ public class AI {
 					Next n = negamax(state, depth - 1, alpha, beta);
 					if (best.value > n.value) {
 						best = n;
-						if (alpha >= best.value) {
-							return best;
-						}
+						if (alpha >= best.value)
+							break;
 						beta = Math.min(beta, best.value);
 					}
 				}
 			}
 		}
+		memo.next = best;
+		if (best.value < alpha)
+			memo.upper = best.value;
+		else if (best.value >= beta)
+			memo.lower = best.value;
+		else
+			memo.lower = memo.upper = best.value;
 		return best;
 	}
 
