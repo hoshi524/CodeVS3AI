@@ -539,7 +539,7 @@ public class State {
 			if (c.player_id == player_ip)
 				continue;
 			int enemyMap[] = new int[Parameter.XY];
-			enemyMap[c.pos] = 3;
+			enemyMap[c.pos] = 4;
 			que[0] = c.pos;
 			qi = 0;
 			qs = 1;

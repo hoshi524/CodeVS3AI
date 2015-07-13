@@ -15,7 +15,7 @@ public class AI {
 				StringBuilder sb = new StringBuilder();
 				while (true) {
 					String tmp = sc.nextLine();
-					sb.append(tmp + "\n");
+					sb.append(tmp).append("\n");
 					if (tmp.equals("END"))
 						break;
 				}
@@ -128,7 +128,7 @@ public class AI {
 		}
 	}
 
-	static boolean target = false;
+	// static boolean target = false;
 
 	Next negamax(State now, int depth, int alpha, int beta) {
 		boolean isMe = depth % 2 == 1;
@@ -152,6 +152,11 @@ public class AI {
 				int res = tmp.operations(operations, Parameter.MY_ID, depth);
 				if (res == 0 || res == -1 || res == -2)
 					continue;
+				//				if (depth == MAX_DEPTH)
+				//					target = operations[0] == this.operations[7] && operations[1] == this.operations[7];
+				//				if (target) {
+				//					debug("ally", depth, operations, res);
+				//				}
 				Next n = new Next(negamax(tmp, depth - 1, alpha, beta).value, operations);
 				if (best.value < n.value) {
 					best = n;
@@ -171,27 +176,34 @@ public class AI {
 				int res = tmp.operations(operations, Parameter.ENEMY_ID, depth);
 				if (res == 0 || res == -2)
 					continue;
+				//				if (target) {
+				//					debug("enemy", depth, operations, res);
+				//				}
 				tmp.step();
 				if (res == 2) {
-					if (depth == 0)
+					if (depth == 0) {
 						best.value = Math.min(best.value, tmp.calcValue());
-					else
+					} else {
 						hutuuList.add(tmp);
+					}
 				} else if (res == 1) {
-					if (depth == 0 || dead(tmp.characters, Parameter.ENEMY_ID) > 0)
+					if (depth == 0 || dead(tmp.characters, Parameter.ENEMY_ID) > 0) {
 						best.value = Math.min(best.value, tmp.calcFleeValue() + State.AiutiValue);
-					else
+					} else {
 						aiutiList.add(tmp);
+					}
 				} else if (res == 3) {
-					if (depth == 0 || dead(tmp.characters, Parameter.MY_ID) > 0)
+					if (depth == 0 || dead(tmp.characters, Parameter.MY_ID) > 0) {
 						best.value = Math.min(best.value, tmp.calcFleeValue() + (MIN_VALUE >> 2));
-					else
+					} else {
 						loseList.add(tmp);
+					}
 				} else if (res == -1) {
-					if (depth == 0 || dead(tmp.characters, Parameter.ENEMY_ID) > 0)
+					if (depth == 0 || dead(tmp.characters, Parameter.ENEMY_ID) > 0) {
 						best.value = Math.min(best.value, tmp.calcFleeValue() + (MAX_VALUE >> 2));
-					else
+					} else {
 						winList.add(tmp);
+					}
 				}
 			}
 			if (depth > 0) {
