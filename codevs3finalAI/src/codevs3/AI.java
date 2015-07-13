@@ -32,16 +32,16 @@ public class AI {
 	static final Operation[][] operationList;
 
 	// 何故か順番に依存してて変更できない
-	final static Operation operations[] = { NONE,//0
-			new Operation(Move.DOWN, false, 5),//1
-			new Operation(Move.LEFT, false, 5),//2
-			new Operation(Move.RIGHT, false, 5),//3
-			new Operation(Move.UP, false, 5),//4
-			new Operation(Move.DOWN, true, 5),//5
-			new Operation(Move.LEFT, true, 5),//6
-			new Operation(Move.RIGHT, true, 5),//7
-			new Operation(Move.UP, true, 5),//8
-			new Operation(Move.NONE, true, 5),//9
+	final static Operation operations[] = { NONE, //0
+			new Operation(Move.DOWN, false, 5), //1
+			new Operation(Move.LEFT, false, 5), //2
+			new Operation(Move.RIGHT, false, 5), //3
+			new Operation(Move.UP, false, 5), //4
+			new Operation(Move.DOWN, true, 5), //5
+			new Operation(Move.LEFT, true, 5), //6
+			new Operation(Move.RIGHT, true, 5), //7
+			new Operation(Move.UP, true, 5), //8
+			new Operation(Move.NONE, true, 5), //9
 	};
 
 	static {
@@ -71,9 +71,10 @@ public class AI {
 		for (int i = 0; i <= MAX_DEPTH; ++i)
 			already[i].clear();
 		State state = new State(input);
-		Next next = negamax(state, MAX_DEPTH, MIN_VALUE, MAX_VALUE);
+		Next next = MTDF(state);
+		// Next next = negamax(state, MAX_DEPTH, MIN_VALUE, MAX_VALUE);
 		if (false) {
-			Next test = MTDF(state);
+			Next test = negamax(state, MAX_DEPTH, MIN_VALUE, MAX_VALUE);
 			if (test.value != next.value) {
 				debug(next.value, next.operations);
 				debug(test.value, test.operations);
@@ -86,6 +87,7 @@ public class AI {
 			sb.append(next.operations[i].toString()).append("\n");
 		}
 		Timer.print();
+		// System.out.print(node.toString());
 		return sb.toString();
 	}
 
@@ -128,7 +130,8 @@ public class AI {
 		}
 	}
 
-	// static boolean target = false;
+	//	static boolean target = false;
+	//	static StringBuilder node = new StringBuilder();
 
 	Next negamax(State now, int depth, int alpha, int beta) {
 		boolean isMe = depth % 2 == 1;
@@ -150,12 +153,13 @@ public class AI {
 			for (Operation[] operations : operationList) {
 				State tmp = new State(now);
 				int res = tmp.operations(operations, Parameter.MY_ID, depth);
-				if (res == 0 || res == -1 || res == -2)
+				if (res == 0 || res == -2)
 					continue;
 				//				if (depth == MAX_DEPTH)
-				//					target = operations[0] == this.operations[7] && operations[1] == this.operations[7];
+				//					target = operations[0] == this.operations[3] && operations[1] == this.operations[1];
 				//				if (target) {
-				//					debug("ally", depth, operations, res);
+				//					node.append(repeat("	", MAX_DEPTH - depth)).append(Arrays.deepToString(new Object[] { depth, operations, res }))
+				//							.append("\n");
 				//				}
 				Next n = new Next(negamax(tmp, depth - 1, alpha, beta).value, operations);
 				if (best.value < n.value) {
@@ -166,7 +170,6 @@ public class AI {
 				}
 			}
 		} else {
-			ArrayList<State> aiutiList = new ArrayList<>();
 			ArrayList<State> hutuuList = new ArrayList<>();
 			ArrayList<State> winList = new ArrayList<>();
 			ArrayList<State> loseList = new ArrayList<>();
@@ -174,11 +177,12 @@ public class AI {
 			for (Operation[] operations : operationList) {
 				State tmp = new State(now);
 				int res = tmp.operations(operations, Parameter.ENEMY_ID, depth);
+				//				if (target) {
+				//					node.append(repeat("	", MAX_DEPTH - depth)).append(Arrays.deepToString(new Object[] { depth, operations, res }))
+				//							.append("\n");
+				//				}
 				if (res == 0 || res == -2)
 					continue;
-				//				if (target) {
-				//					debug("enemy", depth, operations, res);
-				//				}
 				tmp.step();
 				if (res == 2) {
 					if (depth == 0) {
@@ -190,7 +194,7 @@ public class AI {
 					if (depth == 0 || dead(tmp.characters, Parameter.ENEMY_ID) > 0) {
 						best.value = Math.min(best.value, tmp.calcFleeValue() + State.AiutiValue);
 					} else {
-						aiutiList.add(tmp);
+						hutuuList.add(tmp);
 					}
 				} else if (res == 3) {
 					if (depth == 0 || dead(tmp.characters, Parameter.MY_ID) > 0) {
@@ -210,8 +214,6 @@ public class AI {
 				ArrayList<State> nextList = winList;
 				if (loseList.size() > 0)
 					nextList = loseList;
-				else if (aiutiList.size() > 0)
-					nextList = aiutiList;
 				else if (hutuuList.size() > 0)
 					nextList = hutuuList;
 				for (State state : nextList) {
@@ -250,5 +252,12 @@ public class AI {
 
 	final static void debug(final Object... obj) {
 		System.err.println(Arrays.deepToString(obj));
+	}
+
+	final static String repeat(String s, int x) {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < x; ++i)
+			sb.append(s);
+		return sb.toString();
 	}
 }

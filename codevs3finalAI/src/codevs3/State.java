@@ -25,7 +25,7 @@ public class State {
 	private final static int[] mapPosition = new int[Parameter.XY];
 	static {
 		// 角は評価を下げておく
-		mapPosition[0] = mapPosition[1] = mapPosition[11] = mapPosition[12] = mapPosition[13] = mapPosition[25] = mapPosition[117] = mapPosition[129] = mapPosition[130] = mapPosition[131] = mapPosition[141] = mapPosition[142] = -0xff;
+		mapPosition[0] = mapPosition[1] = mapPosition[11] = mapPosition[12] = mapPosition[13] = mapPosition[25] = mapPosition[117] = mapPosition[129] = mapPosition[130] = mapPosition[131] = mapPosition[141] = mapPosition[142] = -0xffff;
 	}
 	static int AiutiValue;
 	static int ac1, ac2;
@@ -533,12 +533,12 @@ public class State {
 	private int enemyDanger(int player_ip) {
 		burstMap = null;
 		int burstMap[] = calcBurstMap();
-		int res = 0, que[] = new int[0x1f], qi, qs;
+		int res = 0, que[] = new int[0x4f], qi, qs;
 		for (Character c : characters) {
 			if (c.player_id == player_ip)
 				continue;
 			int enemyMap[] = new int[Parameter.XY];
-			enemyMap[c.pos] = 4;
+			enemyMap[c.pos] = 7;
 			que[0] = c.pos;
 			qi = 0;
 			qs = 1;
@@ -556,7 +556,7 @@ public class State {
 					}
 				}
 			}
-			res += enemyDanger + 1000 / qs;
+			res += enemyDanger + 10000 / qs;
 		}
 		return res;
 	}
