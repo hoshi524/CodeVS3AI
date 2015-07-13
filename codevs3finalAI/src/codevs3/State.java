@@ -402,8 +402,7 @@ public class State {
 				character.bombCount |= 0x3fff << depth;
 				++fieldBombCount[character.id];
 			}
-			int now_danger = enemyDanger(player_id);
-			if (baseDanger >= now_danger && !softBlockBomb(posBuf, fireBuf)) {
+			if (!softBlockBomb(posBuf, fireBuf) && baseDanger >= enemyDanger(player_id)) {
 				return -2;
 			}
 		}
@@ -572,7 +571,6 @@ public class State {
 			}
 			int posi = pos[i];
 			int firei = fire[i];
-
 			base: for (int d : dirs) {
 				int next_pos = posi;
 				for (int j = 0; j < firei; ++j) {
