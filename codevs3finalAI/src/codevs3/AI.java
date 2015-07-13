@@ -27,7 +27,7 @@ public class AI {
 	static final int MAX_VALUE = Integer.MAX_VALUE - (Integer.MAX_VALUE >> 2);
 	static final int MIN_VALUE = Integer.MIN_VALUE - (Integer.MIN_VALUE >> 2);
 	static final Operation NONE = new Operation(Move.NONE, false, 5);
-	static final int MAX_DEPTH = 2;
+	static final int MAX_DEPTH = 5; // 奇数制約
 
 	static final Operation[][] operationList;
 
@@ -71,7 +71,7 @@ public class AI {
 		for (int i = 0; i <= MAX_DEPTH; ++i)
 			already[i].clear();
 		State state = new State(input);
-		Next next = negamax(state, MAX_DEPTH, MIN_VALUE, MAX_VALUE, true);
+		Next next = negamax(state, MAX_DEPTH, MIN_VALUE, MAX_VALUE);
 		if (false) {
 			Next test = MTDF(state);
 			if (test.value != next.value) {
@@ -102,7 +102,7 @@ public class AI {
 		int bound = 0;
 		Next n = new Next(MIN_VALUE, operationList[0]);
 		while (lower < upper) {
-			n = negamax(now, MAX_DEPTH, bound - 1, bound, true);
+			n = negamax(now, MAX_DEPTH, bound - 1, bound);
 			if (n.value < bound)
 				upper = n.value;
 			else
@@ -129,7 +129,9 @@ public class AI {
 	}
 
 	static boolean target = false;
-	Next negamax(State now, int depth, int alpha, int beta, boolean isMe) {
+
+	Next negamax(State now, int depth, int alpha, int beta) {
+		boolean isMe = depth % 2 == 1;
 		Next best = new Next(isMe ? MIN_VALUE : MAX_VALUE, operationList[0]);
 		if (isMe) {
 			long key = now.getHash();
@@ -159,7 +161,7 @@ public class AI {
 				//				if (target) {
 				//					debug("ally", depth, operations, res);
 				//				}
-				Next n = new Next(negamax(tmp, depth, alpha, beta, !isMe).value, operations);
+				Next n = new Next(negamax(tmp, depth - 1, alpha, beta).value, operations);
 				if (best.value < n.value) {
 					best = n;
 					if (best.value >= beta) {
@@ -229,7 +231,7 @@ public class AI {
 				else if (hutuuList.size() > 0)
 					nextList = hutuuList;
 				for (State state : nextList) {
-					Next n = negamax(state, depth - 1, alpha, beta, !isMe);
+					Next n = negamax(state, depth - 1, alpha, beta);
 					if (best.value > n.value) {
 						best = n;
 						if (alpha >= best.value) {
