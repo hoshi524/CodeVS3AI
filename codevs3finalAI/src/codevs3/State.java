@@ -116,12 +116,8 @@ public class State {
 			for (int i = 0; i < item_num; ++i) {
 				String item_type = sc.next();
 				int pos = (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1);
-				if (item_type.equals("NUMBER_UP")) {
-					map[pos] = Cell.NUMBER;
-				}
-				if (item_type.equals("POWER_UP")) {
-					map[pos] = Cell.POWER;
-				}
+				if (item_type.equals("NUMBER_UP")) map[pos] = Cell.NUMBER;
+				if (item_type.equals("POWER_UP")) map[pos] = Cell.POWER;
 			}
 
 			sc.close();
@@ -194,9 +190,7 @@ public class State {
 				if (map[pos] != Cell.HARD_BLOCK) {
 					map[pos] = Cell.HARD_BLOCK;
 					for (int bi = 0; bi < bombList.size(); bi++) {
-						if (bombList.get(bi).pos == pos) {
-							use[bi] = true;
-						}
+						if (bombList.get(bi).pos == pos) use[bi] = true;
 					}
 					break;
 				}
@@ -258,11 +252,11 @@ public class State {
 			map[pos] = Cell.BLANK;
 		ArrayList<Bomb> next_bl = new ArrayList<Bomb>();
 		for (int i = 0; i < size; ++i) {
-			if (!use[i]) {
-				next_bl.add(bombList.get(i));
-			} else {
+			if (use[i]) {
 				--fieldBombCount[bombList.get(i).id];
 				map[bombList.get(i).pos] = Cell.BLANK;
+			} else {
+				next_bl.add(bombList.get(i));
 			}
 		}
 		bombList = next_bl;
@@ -271,9 +265,7 @@ public class State {
 	}
 
 	int[] calcBurstMap() {
-		if (burstMap != null) {
-			return burstMap;
-		}
+		if (burstMap != null) return burstMap;
 		burstMap = new int[Parameter.XY];
 		Arrays.fill(burstMap, BURST_MAP_INIT);
 		int size = bombList.size();
@@ -301,9 +293,7 @@ public class State {
 							used[next_pos] = true;
 							for (int k = 0; k < size; ++k) {
 								Bomb b = bombList.get(k);
-								if (next_pos == b.pos) {
-									que[qs++] = b;
-								}
+								if (next_pos == b.pos) que[qs++] = b;
 							}
 						}
 					}
@@ -343,9 +333,7 @@ public class State {
 			if (character.player_id != player_id) continue;
 			Operation operation = operations[character.id & 1];
 			int next_pos = character.pos + operation.move.dir;
-			if (operation.move != Move.NONE && (!isin(operation.move.dir, next_pos) || prevmap[next_pos].cantMove())) {
-				return 0;
-			}
+			if (operation.move != Move.NONE && (!isin(operation.move.dir, next_pos) || prevmap[next_pos].cantMove())) return 0;
 			character.pos = next_pos;
 		}
 
@@ -356,9 +344,7 @@ public class State {
 			for (Character character : characters) {
 				Operation operation = operations[character.id & 1];
 				if (character.player_id != player_id || !operation.magic) continue;
-				if (fieldBombCount[character.id] >= character.bomb) {
-					return 0;
-				}
+				if (fieldBombCount[character.id] >= character.bomb) return 0;
 				int pos = character.pos;
 				int fire = character.fire;
 				if (map[pos] == Cell.BOMB) {
@@ -370,9 +356,7 @@ public class State {
 							isTime |= b.limitTime <= operation.burstTime;
 						}
 					}
-					if (isFire && isTime) {
-						return 0;
-					}
+					if (isFire && isTime) return 0;
 				}
 				++bombCount;
 				base: for (int d : dirs) {
@@ -388,12 +372,10 @@ public class State {
 				}
 				bombList.add(new Bomb(character.id, pos, operation.burstTime, fire));
 				map[pos] = Cell.BOMB;
-				character.bombCount |= 0x3fff << depth;
+				character.bombCount |= 0x1fff << depth;
 				++fieldBombCount[character.id];
 			}
-			if (softBlock < bombCount && baseDanger >= enemyDanger(player_id)) {
-				return -2;
-			}
+			if (softBlock < bombCount && baseDanger >= enemyDanger(player_id)) return -2;
 		}
 
 		{// liveDFS
@@ -449,11 +431,8 @@ public class State {
 				}
 				for (int i = 0; i < bl.size(); ++i) {
 					int pos = bl.get(i).pos;
-					if (!usedBomb[pos]) {
-						blockMemo[pos] |= 1 << liveDepth;
-					} else {
-						bl.remove(i--);
-					}
+					if (usedBomb[pos]) bl.remove(i--);
+					else blockMemo[pos] |= 1 << liveDepth;
 				}
 				for (int p : softBlockList) {
 					if (!softBlockClash[p]) {
@@ -462,7 +441,6 @@ public class State {
 					}
 				}
 			}
-
 			int minDeadTime = liveDepth;
 			for (Character c : this.characters) {
 				c.deadTime = liveDFS(c.pos, 0, memo, burstMemo, blockMemo, liveDepth);
@@ -470,18 +448,15 @@ public class State {
 			}
 			if (minDeadTime < liveDepth) {
 				int allyDead = 0, enemyDead = 0;
-				for (Character c : this.characters)
+				for (Character c : this.characters) {
 					if (c.deadTime == minDeadTime) {
 						if (c.player_id == player_id) ++allyDead;
 						else ++enemyDead;
 					}
-				if (allyDead == enemyDead) {
-					return 1;
-				} else if (allyDead > enemyDead) {
-					return -1;
-				} else if (allyDead < enemyDead) {
-					return 3;
 				}
+				if (allyDead == enemyDead) return 1;
+				else if (allyDead > enemyDead) return -1;
+				else if (allyDead < enemyDead) return 3;
 			}
 		}
 		return 2;
@@ -494,18 +469,14 @@ public class State {
 		int res = depth;
 		if ((burstMemo[pos] & bit) == 0) {
 			res = Math.max(res, liveDFS(pos, depth + 1, memo, burstMemo, blockMemo, liveDepth));
-			if (res == liveDepth) {
-				return memo[depth][pos] = res;
-			}
+			if (res == liveDepth) return memo[depth][pos] = res;
 		}
 		if (depth > 0) {
 			for (int d : dirs) {
 				int next_pos = pos + d;
 				if (!isin(d, next_pos) || (burstMemo[next_pos] & bit) != 0 || (blockMemo[next_pos] & bit) != 0) continue;
 				res = Math.max(res, liveDFS(next_pos, depth + 1, memo, burstMemo, blockMemo, liveDepth));
-				if (res == liveDepth) {
-					return memo[depth][pos] = res;
-				}
+				if (res == liveDepth) return memo[depth][pos] = res;
 			}
 		}
 		return memo[depth][pos] = res;
@@ -530,13 +501,11 @@ public class State {
 					int next_pos = now_pos + d;
 					if (isin(d, next_pos) && map[next_pos].canMove() && enemyMap[next_pos] < enemyMap[now_pos]) {
 						enemyMap[next_pos] = enemyMap[now_pos] - 1;
-						if (enemyMap[next_pos] > 1) {
-							que[qs++] = next_pos;
-						}
+						if (enemyMap[next_pos] > 1) que[qs++] = next_pos;
 					}
 				}
 			}
-			res += enemyDanger + 10000 / qs;
+			res += enemyDanger + 100000 / qs;
 		}
 		return res;
 	}

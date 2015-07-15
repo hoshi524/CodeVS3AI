@@ -149,8 +149,7 @@ public class AI {
 				State tmp = new State(now);
 				int res = tmp.operations(operations, Parameter.MY_ID, depth);
 				if (res == 0 || res == -2) continue;
-				//				if (depth == MAX_DEPTH)
-				//					target = operations[0] == this.operations[3] && operations[1] == this.operations[1];
+				//				if (depth == MAX_DEPTH) target = operations[0] == this.operations[7] && operations[1] == this.operations[0];
 				//				if (target) {
 				//					node.append(repeat("	", MAX_DEPTH - depth)).append(Arrays.deepToString(new Object[] { depth, operations, res }))
 				//							.append("\n");
