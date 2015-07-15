@@ -9,19 +9,19 @@ public class Timer {
 	private static final long prev[] = new long[max];
 	private static final long sum[] = new long[max];
 
-	static final void start(int i) {
+	public static final void start(int i) {
 		if (none)
 			return;
 		prev[i] = System.nanoTime();
 	}
 
-	static final void end(int i) {
+	public static final void end(int i) {
 		if (none)
 			return;
 		sum[i] += System.nanoTime() - prev[i];
 	}
 
-	static final void print() {
+	public static final void print() {
 		if (none)
 			return;
 		StringBuilder sb = new StringBuilder();

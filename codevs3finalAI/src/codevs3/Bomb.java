@@ -26,7 +26,7 @@ public class Bomb implements Comparable<Bomb> {
 	}
 
 	@Override
-	public int compareTo(Bomb arg) {
-		return limitTime - arg.limitTime;
+	public int compareTo(Bomb b) {
+		return limitTime - b.limitTime;
 	}
 }
