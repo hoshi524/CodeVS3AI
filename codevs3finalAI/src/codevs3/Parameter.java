@@ -2,8 +2,7 @@ package codevs3;
 
 public class Parameter {
 
-	private Parameter() {
-	}
+	private Parameter() {}
 
 	public static final int X = 13;
 	public static final int Y = 11;
@@ -16,20 +15,17 @@ public class Parameter {
 	public static final boolean DEBUG = false;
 
 	public static final void print(String str) {
-		if (!DEBUG)
-			return;
+		if (!DEBUG) return;
 		System.err.print(str);
 	}
 
 	public static final void println(String str) {
-		if (!DEBUG)
-			return;
+		if (!DEBUG) return;
 		System.err.println(str);
 	}
 
 	public static final void println() {
-		if (!DEBUG)
-			return;
+		if (!DEBUG) return;
 		System.err.println();
 	}
 
@@ -40,16 +36,13 @@ public class Parameter {
 				boolean flag = true;
 				for (Character c : s.characters) {
 					if (c.pos == x + y * Parameter.X) {
-						if (c.player_id == Parameter.MY_ID)
-							Parameter.print("  ap" + c.id);
-						else
-							Parameter.print("  ep" + c.id);
+						if (c.player_id == Parameter.MY_ID) Parameter.print("  ap" + c.id);
+						else Parameter.print("  ep" + c.id);
 						flag = false;
 						break;
 					}
 				}
-				if (flag)
-					Parameter.print(String.format("%5d", s.map[x + y * Parameter.X].ordinal()));
+				if (flag) Parameter.print(String.format("%5d", s.map[x + y * Parameter.X].ordinal()));
 			}
 			Parameter.println();
 		}

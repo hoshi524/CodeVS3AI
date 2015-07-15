@@ -16,10 +16,11 @@ public class AI {
 				while (true) {
 					String tmp = sc.nextLine();
 					sb.append(tmp).append("\n");
-					if (tmp.equals("END"))
-						break;
+					if (tmp.equals("END")) break;
 				}
-				System.out.print(ai.think(sb.toString()));
+				String input = sb.toString(), output;
+				output = ai.think(input);
+				System.out.print(output);
 			}
 		}
 	}
@@ -105,14 +106,10 @@ public class AI {
 		Next n = new Next(MIN_VALUE, operationList[0]);
 		while (lower < upper) {
 			n = negamax(now, MAX_DEPTH, bound - 1, bound);
-			if (n.value < bound)
-				upper = n.value;
-			else
-				lower = n.value;
-			if (lower == n.value)
-				bound = n.value + 1;
-			else
-				bound = n.value;
+			if (n.value < bound) upper = n.value;
+			else lower = n.value;
+			if (lower == n.value) bound = n.value + 1;
+			else bound = n.value;
 		}
 		return n;
 	}
@@ -139,10 +136,8 @@ public class AI {
 		long key = now.getHash();
 		Already memo = already[depth].get(key);
 		if (memo != null) {
-			if (beta < memo.lower)
-				return new Next(memo.lower, memo.next.operations);
-			if (memo.upper < alpha)
-				return new Next(memo.upper, memo.next.operations);
+			if (beta < memo.lower) return new Next(memo.lower, memo.next.operations);
+			if (memo.upper < alpha) return new Next(memo.upper, memo.next.operations);
 			alpha = Math.max(alpha, memo.lower);
 			beta = Math.min(beta, memo.upper);
 		} else {
@@ -153,8 +148,7 @@ public class AI {
 			for (Operation[] operations : operationList) {
 				State tmp = new State(now);
 				int res = tmp.operations(operations, Parameter.MY_ID, depth);
-				if (res == 0 || res == -2)
-					continue;
+				if (res == 0 || res == -2) continue;
 				//				if (depth == MAX_DEPTH)
 				//					target = operations[0] == this.operations[3] && operations[1] == this.operations[1];
 				//				if (target) {
@@ -164,8 +158,7 @@ public class AI {
 				Next n = new Next(negamax(tmp, depth - 1, alpha, beta).value, operations);
 				if (best.value < n.value) {
 					best = n;
-					if (best.value >= beta)
-						break;
+					if (best.value >= beta) break;
 					alpha = Math.max(alpha, best.value);
 				}
 			}
@@ -181,8 +174,7 @@ public class AI {
 				//					node.append(repeat("	", MAX_DEPTH - depth)).append(Arrays.deepToString(new Object[] { depth, operations, res }))
 				//							.append("\n");
 				//				}
-				if (res == 0 || res == -2)
-					continue;
+				if (res == 0 || res == -2) continue;
 				tmp.step();
 				if (res == 2) {
 					if (depth == 0) {
@@ -212,41 +204,31 @@ public class AI {
 			}
 			if (depth > 0) {
 				ArrayList<State> nextList = winList;
-				if (loseList.size() > 0)
-					nextList = loseList;
-				else if (hutuuList.size() > 0)
-					nextList = hutuuList;
+				if (loseList.size() > 0) nextList = loseList;
+				else if (hutuuList.size() > 0) nextList = hutuuList;
 				for (State state : nextList) {
 					Next n = negamax(state, depth - 1, alpha, beta);
 					if (best.value > n.value) {
 						best = n;
-						if (alpha >= best.value)
-							break;
+						if (alpha >= best.value) break;
 						beta = Math.min(beta, best.value);
 					}
 				}
 			}
 		}
 		memo.next = best;
-		if (best.value < alpha)
-			memo.upper = best.value;
-		else if (best.value >= beta)
-			memo.lower = best.value;
-		else
-			memo.lower = memo.upper = best.value;
+		if (best.value < alpha) memo.upper = best.value;
+		else if (best.value >= beta) memo.lower = best.value;
+		else memo.lower = memo.upper = best.value;
 		return best;
 	}
 
 	private final int dead(Character[] characters, int player_id) {
 		int dead = 0;
-		if (characters[0].dead && characters[0].player_id == player_id)
-			++dead;
-		if (characters[1].dead && characters[1].player_id == player_id)
-			++dead;
-		if (characters[2].dead && characters[2].player_id == player_id)
-			++dead;
-		if (characters[3].dead && characters[3].player_id == player_id)
-			++dead;
+		if (characters[0].dead && characters[0].player_id == player_id) ++dead;
+		if (characters[1].dead && characters[1].player_id == player_id) ++dead;
+		if (characters[2].dead && characters[2].player_id == player_id) ++dead;
+		if (characters[3].dead && characters[3].player_id == player_id) ++dead;
 		return dead;
 	}
 

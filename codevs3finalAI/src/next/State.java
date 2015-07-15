@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 
-import codevs3.Bomb;
 import codevs3.Character;
 import codevs3.Hash;
 import codevs3.Move;
@@ -45,7 +44,7 @@ public class State {
 	private int fieldBombCount[] = new int[Parameter.CHARACTER_NUM];
 	private int burstMap[] = null;
 
-	private ArrayList<Bomb> bombList = new ArrayList<Bomb>();
+	private BombList bombList;
 
 	private static final boolean isin(int dir, int next) {
 		int x = next % Parameter.X;
@@ -62,9 +61,7 @@ public class State {
 		characters[1] = new Character(s.characters[1]);
 		characters[2] = new Character(s.characters[2]);
 		characters[3] = new Character(s.characters[3]);
-		for (Bomb b : s.bombList) {
-			bombList.add(new Bomb(b));
-		}
+		bombList = new BombList(s.bombList);
 	}
 
 	State(String str) {
@@ -107,6 +104,7 @@ public class State {
 			}
 
 			int bomb_num = sc.nextInt();
+			bombList = new BombList();
 			for (int i = 0; i < bomb_num; ++i) {
 				int id = sc.nextInt();
 				int pos = (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1);
@@ -150,12 +148,9 @@ public class State {
 						mapPosition[pos] = (Integer.MIN_VALUE / 4);
 						break;
 					}
-					if (i == 0 && x == Parameter.X - j)
-						i = 1;
-					else if (i == 1 && y == Parameter.Y - j)
-						i = 2;
-					else if (i == 2 && x == j - 1)
-						i = 3;
+					if (i == 0 && x == Parameter.X - j) i = 1;
+					else if (i == 1 && y == Parameter.Y - j) i = 2;
+					else if (i == 2 && x == j - 1) i = 3;
 					else if (i == 3 && y == j) {
 						i = 0;
 						j++;
@@ -174,34 +169,22 @@ public class State {
 	}
 
 	void step() {
-		if (map[characters[0].pos] == Cell.NUMBER)
-			++characters[0].bomb;
-		else if (map[characters[0].pos] == Cell.POWER)
-			++characters[0].fire;
-		if (map[characters[1].pos] == Cell.NUMBER)
-			++characters[1].bomb;
-		else if (map[characters[1].pos] == Cell.POWER)
-			++characters[1].fire;
-		if (map[characters[2].pos] == Cell.NUMBER)
-			++characters[2].bomb;
-		else if (map[characters[2].pos] == Cell.POWER)
-			++characters[2].fire;
-		if (map[characters[3].pos] == Cell.NUMBER)
-			++characters[3].bomb;
-		else if (map[characters[3].pos] == Cell.POWER)
-			++characters[3].fire;
+		if (map[characters[0].pos] == Cell.NUMBER) ++characters[0].bomb;
+		else if (map[characters[0].pos] == Cell.POWER) ++characters[0].fire;
+		if (map[characters[1].pos] == Cell.NUMBER) ++characters[1].bomb;
+		else if (map[characters[1].pos] == Cell.POWER) ++characters[1].fire;
+		if (map[characters[2].pos] == Cell.NUMBER) ++characters[2].bomb;
+		else if (map[characters[2].pos] == Cell.POWER) ++characters[2].fire;
+		if (map[characters[3].pos] == Cell.NUMBER) ++characters[3].bomb;
+		else if (map[characters[3].pos] == Cell.POWER) ++characters[3].fire;
 
-		if (map[characters[0].pos] == Cell.NUMBER || map[characters[0].pos] == Cell.POWER)
-			map[characters[0].pos] = Cell.BLANK;
-		if (map[characters[1].pos] == Cell.NUMBER || map[characters[1].pos] == Cell.POWER)
-			map[characters[1].pos] = Cell.BLANK;
-		if (map[characters[2].pos] == Cell.NUMBER || map[characters[2].pos] == Cell.POWER)
-			map[characters[2].pos] = Cell.BLANK;
-		if (map[characters[3].pos] == Cell.NUMBER || map[characters[3].pos] == Cell.POWER)
-			map[characters[3].pos] = Cell.BLANK;
+		if (map[characters[0].pos] == Cell.NUMBER || map[characters[0].pos] == Cell.POWER) map[characters[0].pos] = Cell.BLANK;
+		if (map[characters[1].pos] == Cell.NUMBER || map[characters[1].pos] == Cell.POWER) map[characters[1].pos] = Cell.BLANK;
+		if (map[characters[2].pos] == Cell.NUMBER || map[characters[2].pos] == Cell.POWER) map[characters[2].pos] = Cell.BLANK;
+		if (map[characters[3].pos] == Cell.NUMBER || map[characters[3].pos] == Cell.POWER) map[characters[3].pos] = Cell.BLANK;
 
-		int size = bombList.size();
-		boolean use[] = new boolean[size];
+		int size = bombList.bombList.size();
+		boolean used[] = new boolean[Parameter.XY];
 		boolean attacked[] = new boolean[Parameter.XY];
 
 		turn++;
@@ -215,19 +198,12 @@ public class State {
 				int pos = y * Parameter.X + x;
 				if (map[pos] != Cell.HARD_BLOCK) {
 					map[pos] = Cell.HARD_BLOCK;
-					for (int bi = 0; bi < bombList.size(); bi++) {
-						if (bombList.get(bi).pos == pos) {
-							use[bi] = true;
-						}
-					}
+					used[pos] = true;
 					break;
 				}
-				if (i == 0 && x == Parameter.X - j)
-					i = 1;
-				else if (i == 1 && y == Parameter.Y - j)
-					i = 2;
-				else if (i == 2 && x == j - 1)
-					i = 3;
+				if (i == 0 && x == Parameter.X - j) i = 1;
+				else if (i == 1 && y == Parameter.Y - j) i = 2;
+				else if (i == 2 && x == j - 1) i = 3;
 				else if (i == 3 && y == j) {
 					i = 0;
 					j++;
@@ -236,17 +212,16 @@ public class State {
 		}
 		List<Integer> softBlockList = new ArrayList<Integer>();
 		Bomb que[] = new Bomb[size];
-		for (int b1 = 0; b1 < size; ++b1) {
-			if (use[b1])
-				continue;
-			Bomb b = bombList.get(b1);
+		for (int i = 0; i < size; ++i) {
+			Bomb b = bombList.bombList.get(i);
+			if (used[b.pos]) continue;
 			if (b.limitTime > 0) {
 				--b.limitTime;
 				continue;
 			}
 			int qi = 0, qs = 1;
 			que[0] = b;
-			use[b1] = true;
+			used[b.pos] = true;
 			while (qi < qs) {
 				Bomb bb = que[qi++];
 				attacked[bb.pos] = true;
@@ -254,68 +229,55 @@ public class State {
 					int next_pos = bb.pos;
 					for (int j = 0; j < bb.fire; ++j) {
 						next_pos += d;
-						if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK)
-							break;
+						if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
 						attacked[next_pos] = true;
 						if (map[next_pos] == Cell.SOFT_BLOCK) {
 							softBlockList.add(next_pos);
 							break;
 						}
-						if (map[next_pos] == Cell.BOMB) {
-							map[next_pos] = Cell.BLANK;
-							for (int b2 = 0; b2 < size; ++b2) {
-								Bomb nb = bombList.get(b2);
-								if (next_pos == nb.pos && !use[b2]) {
-									use[b2] = true;
-									que[qs++] = nb;
-								}
-							}
+						if (map[next_pos] == Cell.BOMB && !used[next_pos]) {
+							used[next_pos] = true;
+							que[qs++] = bombList.map[next_pos];
 						}
 					}
 				}
 			}
 		}
 
-		if (attacked[characters[0].pos])
-			characters[0].dead = true;
-		if (attacked[characters[1].pos])
-			characters[1].dead = true;
-		if (attacked[characters[2].pos])
-			characters[2].dead = true;
-		if (attacked[characters[3].pos])
-			characters[3].dead = true;
+		if (attacked[characters[0].pos]) characters[0].dead = true;
+		if (attacked[characters[1].pos]) characters[1].dead = true;
+		if (attacked[characters[2].pos]) characters[2].dead = true;
+		if (attacked[characters[3].pos]) characters[3].dead = true;
 
 		for (int pos : softBlockList)
 			map[pos] = Cell.BLANK;
-		ArrayList<Bomb> next_bl = new ArrayList<Bomb>();
-		for (int i = 0; i < size; ++i) {
-			if (!use[i]) {
-				next_bl.add(bombList.get(i));
-			} else {
-				--fieldBombCount[bombList.get(i).id];
-				map[bombList.get(i).pos] = Cell.BLANK;
+		for (int i = 0; i < bombList.bombList.size(); ++i) {
+			Bomb b = bombList.bombList.get(i);
+			if (used[b.pos]) {
+				for (int id : b.id)
+					--fieldBombCount[id];
+				map[b.pos] = Cell.BLANK;
+				bombList.remove(i--);
 			}
 		}
-		bombList = next_bl;
 		burstMap = null;
 		prevmap = Arrays.copyOf(map, map.length);
 	}
 
 	int[] calcBurstMap() {
-		if (burstMap != null) {
-			return burstMap;
-		}
+		if (burstMap != null) return burstMap;
+
 		burstMap = new int[Parameter.XY];
 		Arrays.fill(burstMap, BURST_MAP_INIT);
-		int size = bombList.size();
+		int size = bombList.bombList.size();
 		boolean used[] = new boolean[Parameter.XY];
-		Collections.sort(bombList);
+		Collections.sort(bombList.bombList);
 		Bomb que[] = new Bomb[size];
 
 		for (int i = 0; i < size; ++i) {
-			Bomb t = bombList.get(i);
-			if (used[t.pos])
-				continue;
+			Bomb t = bombList.bombList.get(i);
+			if (used[t.pos]) continue;
+
 			que[0] = t;
 			int qi = 0, qs = 1, limitTime = t.limitTime;
 			used[t.pos] = true;
@@ -326,19 +288,12 @@ public class State {
 					int next_pos = bb.pos;
 					for (int j = 0; j < bb.fire; ++j) {
 						next_pos += d;
-						if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK)
-							break;
+						if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
 						burstMap[next_pos] = Math.min(burstMap[next_pos], limitTime);
-						if (map[next_pos] == Cell.SOFT_BLOCK)
-							break;
+						if (map[next_pos] == Cell.SOFT_BLOCK) break;
 						else if (map[next_pos] == Cell.BOMB && !used[next_pos]) {
 							used[next_pos] = true;
-							for (int k = 0; k < size; ++k) {
-								Bomb b = bombList.get(k);
-								if (next_pos == b.pos) {
-									que[qs++] = b;
-								}
-							}
+							que[qs++] = bombList.map[next_pos];
 						}
 					}
 				}
@@ -374,13 +329,10 @@ public class State {
 	int operations(Operation[] operations, int player_id, int depth) {
 		// 移動処理
 		for (Character character : characters) {
-			if (character.player_id != player_id)
-				continue;
+			if (character.player_id != player_id) continue;
 			Operation operation = operations[character.id & 1];
 			int next_pos = character.pos + operation.move.dir;
-			if (operation.move != Move.NONE && (!isin(operation.move.dir, next_pos) || prevmap[next_pos].cantMove())) {
-				return 0;
-			}
+			if (operation.move != Move.NONE && (!isin(operation.move.dir, next_pos) || prevmap[next_pos].cantMove())) return 0;
 			character.pos = next_pos;
 		}
 
@@ -390,33 +342,17 @@ public class State {
 			int softBlock = 0, bombCount = 0;
 			for (Character character : characters) {
 				Operation operation = operations[character.id & 1];
-				if (character.player_id != player_id || !operation.magic)
-					continue;
-				if (fieldBombCount[character.id] >= character.bomb) {
-					return 0;
-				}
+				if (character.player_id != player_id || !operation.magic) continue;
+				if (fieldBombCount[character.id] >= character.bomb) return 0;
 				int pos = character.pos;
 				int fire = character.fire;
-				if (map[pos] == Cell.BOMB) {
-					boolean isFire = false, isTime = false;
-					for (int i = 0, size = bombList.size(); i < size; ++i) {
-						Bomb b = bombList.get(i);
-						if (pos == b.pos) {
-							isFire |= b.fire >= fire;
-							isTime |= b.limitTime <= operation.burstTime;
-						}
-					}
-					if (isFire && isTime) {
-						return 0;
-					}
-				}
+				if (map[pos] == Cell.BOMB && bombList.map[pos].fire >= fire && bombList.map[pos].limitTime <= operation.burstTime) return 0;
 				++bombCount;
 				base: for (int d : dirs) {
 					int next_pos = pos;
 					for (int j = 0; j < fire; ++j) {
 						next_pos += d;
-						if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK)
-							break;
+						if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
 						if (map[next_pos] == Cell.SOFT_BLOCK && burstMap[next_pos] == BURST_MAP_INIT) {
 							++softBlock;
 							break base;
@@ -428,9 +364,7 @@ public class State {
 				character.bombCount |= 0x3fff << depth;
 				++fieldBombCount[character.id];
 			}
-			if (softBlock < bombCount && baseDanger >= enemyDanger(player_id)) {
-				return -2;
-			}
+			if (softBlock < bombCount && baseDanger >= enemyDanger(player_id)) return -2;
 		}
 
 		{// liveDFS
@@ -453,15 +387,13 @@ public class State {
 			boolean softBlockClash[] = new boolean[Parameter.XY], tmpSoftBlockClash[] = new boolean[Parameter.XY];
 			boolean usedBomb[] = new boolean[Parameter.XY];
 			Bomb que[] = new Bomb[Parameter.XY];
-			List<Bomb> bl = new ArrayList<>(bombList);
+			BombList bl = new BombList(bombList);
 			int liveDepth = 0;
-			for (; liveDepth < Parameter.maxLiveDepth && !bl.isEmpty(); ++liveDepth) {
-				for (Bomb bomb : bl) {
+			for (; liveDepth < Parameter.maxLiveDepth && !bl.bombList.isEmpty(); ++liveDepth) {
+				for (Bomb bomb : bl.bombList) {
 					if (bomb.limitTime == liveDepth && !usedBomb[bomb.pos]) {
 						int qi = 0, qs = 0;
-						for (Bomb bomb2 : bl)
-							if (bomb.pos == bomb2.pos)
-								que[qs++] = bomb2;
+						que[qs++] = bl.map[bomb.pos];
 						usedBomb[bomb.pos] = true;
 						while (qi < qs) {
 							Bomb bb = que[qi++];
@@ -470,29 +402,26 @@ public class State {
 								int next_pos = bb.pos;
 								for (int j = 0; j < bb.fire; j++) {
 									next_pos += d;
-									if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK)
-										break;
+									if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
 									burstMemo[next_pos] |= 1 << liveDepth;
 									if (map[next_pos] == Cell.SOFT_BLOCK && !softBlockClash[next_pos]) {
 										tmpSoftBlockClash[next_pos] = true;
 										break;
 									} else if (map[next_pos] == Cell.BOMB && !usedBomb[next_pos]) {
 										usedBomb[next_pos] = true;
-										for (Bomb bomb2 : bl)
-											if (next_pos == bomb2.pos)
-												que[qs++] = bomb2;
+										que[qs++] = bl.map[next_pos];
 									}
 								}
 							}
 						}
 					}
 				}
-				for (int i = 0; i < bl.size(); ++i) {
-					int pos = bl.get(i).pos;
-					if (!usedBomb[pos]) {
-						blockMemo[pos] |= 1 << liveDepth;
-					} else {
+				for (int i = 0; i < bl.bombList.size(); ++i) {
+					int pos = bl.bombList.get(i).pos;
+					if (usedBomb[pos]) {
 						bl.remove(i--);
+					} else {
+						blockMemo[pos] |= 1 << liveDepth;
 					}
 				}
 				for (int p : softBlockList) {
@@ -512,45 +441,32 @@ public class State {
 				int allyDead = 0, enemyDead = 0;
 				for (Character c : this.characters)
 					if (c.deadTime == minDeadTime) {
-						if (c.player_id == player_id)
-							++allyDead;
-						else
-							++enemyDead;
+						if (c.player_id == player_id) ++allyDead;
+						else ++enemyDead;
 					}
-				if (allyDead == enemyDead) {
-					return 1;
-				} else if (allyDead > enemyDead) {
-					return -1;
-				} else if (allyDead < enemyDead) {
-					return 3;
-				}
+				if (allyDead == enemyDead) return 1;
+				else if (allyDead > enemyDead) return -1;
+				else if (allyDead < enemyDead) return 3;
 			}
 		}
 		return 2;
 	}
 
 	private int liveDFS(int pos, int depth, int memo[][], int burstMemo[], int blockMemo[], int liveDepth) {
-		if (memo[depth][pos] != -1)
-			return memo[depth][pos];
-		if (depth == liveDepth)
-			return memo[depth][pos] = liveDepth;
+		if (memo[depth][pos] != -1) return memo[depth][pos];
+		if (depth == liveDepth) return memo[depth][pos] = liveDepth;
 		int bit = 1 << depth;
 		int res = depth;
 		if ((burstMemo[pos] & bit) == 0) {
 			res = Math.max(res, liveDFS(pos, depth + 1, memo, burstMemo, blockMemo, liveDepth));
-			if (res == liveDepth) {
-				return memo[depth][pos] = res;
-			}
+			if (res == liveDepth) return memo[depth][pos] = res;
 		}
 		if (depth > 0) {
 			for (int d : dirs) {
 				int next_pos = pos + d;
-				if (!isin(d, next_pos) || (burstMemo[next_pos] & bit) != 0 || (blockMemo[next_pos] & bit) != 0)
-					continue;
+				if (!isin(d, next_pos) || (burstMemo[next_pos] & bit) != 0 || (blockMemo[next_pos] & bit) != 0) continue;
 				res = Math.max(res, liveDFS(next_pos, depth + 1, memo, burstMemo, blockMemo, liveDepth));
-				if (res == liveDepth) {
-					return memo[depth][pos] = res;
-				}
+				if (res == liveDepth) return memo[depth][pos] = res;
 			}
 		}
 		return memo[depth][pos] = res;
@@ -561,8 +477,8 @@ public class State {
 		int burstMap[] = calcBurstMap();
 		int res = 0, que[] = new int[0x4f], qi, qs;
 		for (Character c : characters) {
-			if (c.player_id == player_ip)
-				continue;
+			if (c.player_id == player_ip) continue;
+
 			int enemyMap[] = new int[Parameter.XY];
 			enemyMap[c.pos] = 7;
 			que[0] = c.pos;
@@ -576,9 +492,7 @@ public class State {
 					int next_pos = now_pos + d;
 					if (isin(d, next_pos) && map[next_pos].canMove() && enemyMap[next_pos] < enemyMap[now_pos]) {
 						enemyMap[next_pos] = enemyMap[now_pos] - 1;
-						if (enemyMap[next_pos] > 1) {
-							que[qs++] = next_pos;
-						}
+						if (enemyMap[next_pos] > 1) que[qs++] = next_pos;
 					}
 				}
 			}

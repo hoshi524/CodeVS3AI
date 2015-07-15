@@ -1,4 +1,5 @@
 package codevs3;
+
 /**
  * プレイヤーが行う操作コマンド
  */
@@ -17,8 +18,7 @@ public class Operation {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append(move.name());
-		if (magic)
-			sb.append(" MAGIC ").append(burstTime);
+		if (magic) sb.append(" MAGIC ").append(burstTime);
 		return sb.toString();
 	}
 }

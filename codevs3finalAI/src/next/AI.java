@@ -17,7 +17,9 @@ public class AI {
 	public static void main(String[] args) {
 		try (Scanner sc = new Scanner(System.in)) {
 			AI ai = new AI();
+			next.AI test = new next.AI();
 			System.out.println("hoshi524");
+			long s0 = 0, s1 = 0;
 			while (true) {
 				StringBuilder sb = new StringBuilder();
 				while (true) {
@@ -26,7 +28,16 @@ public class AI {
 					if (tmp.equals("END"))
 						break;
 				}
-				System.out.print(ai.think(sb.toString()));
+				String input = sb.toString(), output;
+				long t0 = System.nanoTime();
+				output = ai.think(input);
+				long t1 = System.nanoTime();
+				output = test.think(input);
+				long t2 = System.nanoTime();
+				System.out.print(output);
+				s0 += t1 - t0;
+				s1 += t2 - t1;
+				System.err.println(s0 + " " + s1);
 			}
 		}
 	}
