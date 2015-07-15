@@ -1,9 +1,16 @@
-package codevs3;
+package next;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Scanner;
+
+import codevs3.Character;
+import codevs3.Move;
+import codevs3.Next;
+import codevs3.Operation;
+import codevs3.Parameter;
+import codevs3.Timer;
 
 public class AI {
 
@@ -11,8 +18,6 @@ public class AI {
 		try (Scanner sc = new Scanner(System.in)) {
 			AI ai = new AI();
 			System.out.println("hoshi524");
-			// next.AI test = new next.AI();
-			// long s0 = 0, s1 = 0;
 			while (true) {
 				StringBuilder sb = new StringBuilder();
 				while (true) {
@@ -21,14 +26,7 @@ public class AI {
 					if (tmp.equals("END")) break;
 				}
 				String input = sb.toString(), output;
-				// long t0 = System.nanoTime();
 				output = ai.think(input);
-				//				long t1 = System.nanoTime();
-				//				output = test.think(input);
-				//				long t2 = System.nanoTime();
-				//				s0 += t1 - t0;
-				//				s1 += t2 - t1;
-				//				System.err.println(s0 + " " + s1);
 				System.out.print(output);
 			}
 		}

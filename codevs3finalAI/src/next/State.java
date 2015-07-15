@@ -1,10 +1,17 @@
-package codevs3;
+package next;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
+
+import codevs3.Bomb;
+import codevs3.Character;
+import codevs3.Hash;
+import codevs3.Move;
+import codevs3.Operation;
+import codevs3.Parameter;
 
 public class State {
 
