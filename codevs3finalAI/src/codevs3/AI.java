@@ -36,13 +36,13 @@ public class AI {
 
 	static final int MAX_VALUE = Integer.MAX_VALUE - (Integer.MAX_VALUE >> 2);
 	static final int MIN_VALUE = Integer.MIN_VALUE - (Integer.MIN_VALUE >> 2);
-	static final Operation NONE = new Operation(Move.NONE, false, 5);
-	static final int MAX_DEPTH = 5; // 奇数制約
+	static final int MAX_DEPTH = 3; // 奇数制約
 
 	static final Operation[][] operationList;
 
 	// 何故か順番に依存してて変更できない
-	final static Operation operations[] = { NONE, //0
+	final static Operation operations[] = {//
+	new Operation(Move.NONE, false, 5), //0
 			new Operation(Move.DOWN, false, 5), //1
 			new Operation(Move.LEFT, false, 5), //2
 			new Operation(Move.RIGHT, false, 5), //3
@@ -56,19 +56,14 @@ public class AI {
 
 	static {
 		class innerfunc {
-			void operation_dfs(int character_num, Operation[] now, ArrayList<Operation[]> res) {
-				if (Parameter.PLAYER == character_num) {
-					Operation[] push = new Operation[now.length];
-					for (int i = 0; i < now.length; ++i) {
-						push[i] = now[i];
+			void operation_dfs(int n, Operation[] now, ArrayList<Operation[]> res) {
+				if (Parameter.PLAYER == n) {
+					res.add(Arrays.copyOf(now, now.length));
+				} else {
+					for (Operation operation : operations) {
+						now[n] = operation;
+						operation_dfs(n + 1, now, res);
 					}
-					res.add(push);
-					return;
-				}
-
-				for (Operation operation : operations) {
-					now[character_num] = operation;
-					operation_dfs(character_num + 1, now, res);
 				}
 			}
 		}
@@ -97,7 +92,6 @@ public class AI {
 			sb.append(next.operations[i].toString()).append("\n");
 		}
 		Timer.print();
-		// System.out.print(node.toString());
 		return sb.toString();
 	}
 
@@ -107,8 +101,6 @@ public class AI {
 	 * と結果が一致して性能が良いことをテストしないと・・・
 	 */
 	Next MTDF(State now) {
-		for (int i = 0; i <= MAX_DEPTH; ++i)
-			already[i].clear();
 		int lower = MIN_VALUE;
 		int upper = MAX_VALUE;
 		int bound = 0;
@@ -136,8 +128,7 @@ public class AI {
 		}
 	}
 
-	//	static boolean target = false;
-	//	static StringBuilder node = new StringBuilder();
+	// DebugDFS test = new DebugDFS();
 
 	Next negamax(State now, int depth, int alpha, int beta) {
 		boolean isMe = depth % 2 == 1;
@@ -157,12 +148,8 @@ public class AI {
 			for (Operation[] operations : operationList) {
 				State tmp = new State(now);
 				int res = tmp.operations(operations, Parameter.MY_ID, depth);
+				// test.addNode(Arrays.deepToString(new Object[] { depth, operations, res }), MAX_DEPTH - depth);
 				if (res == 0 || res == -2) continue;
-				//				if (depth == MAX_DEPTH) target = operations[0] == this.operations[7] && operations[1] == this.operations[0];
-				//				if (target) {
-				//					node.append(repeat("	", MAX_DEPTH - depth)).append(Arrays.deepToString(new Object[] { depth, operations, res }))
-				//							.append("\n");
-				//				}
 				Next n = new Next(negamax(tmp, depth - 1, alpha, beta).value, operations);
 				if (best.value < n.value) {
 					best = n;
@@ -178,12 +165,11 @@ public class AI {
 			for (Operation[] operations : operationList) {
 				State tmp = new State(now);
 				int res = tmp.operations(operations, Parameter.ENEMY_ID, depth);
-				//				if (target) {
-				//					node.append(repeat("	", MAX_DEPTH - depth)).append(Arrays.deepToString(new Object[] { depth, operations, res }))
-				//							.append("\n");
-				//				}
 				if (res == 0 || res == -2) continue;
+				// test.addNode(Arrays.deepToString(new Object[] { depth, operations, res }), MAX_DEPTH - depth);
 				tmp.step();
+				// int allyDead = dead(tmp.characters, Parameter.MY_ID), enemyDead = dead(tmp.characters, Parameter.ENEMY_ID);
+				// if (depth == 0 || allyDead > 0 || enemyDead > 0) {
 				if (res == 2) {
 					if (depth == 0) {
 						best.value = Math.min(best.value, tmp.calcValue());
@@ -209,6 +195,14 @@ public class AI {
 						winList.add(tmp);
 					}
 				}
+				//				} else {
+				//					Next n = negamax(tmp, depth - 1, alpha, beta);
+				//					if (best.value > n.value) {
+				//						best = n;
+				//						if (alpha >= best.value) break;
+				//						beta = Math.min(beta, best.value);
+				//					}
+				//				}
 			}
 			if (depth > 0) {
 				ArrayList<State> nextList = winList;
