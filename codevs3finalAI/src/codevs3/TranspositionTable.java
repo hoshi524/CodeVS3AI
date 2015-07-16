@@ -16,6 +16,11 @@ public class TranspositionTable {
 			this.key = key;
 			this.n = n;
 		}
+
+		void init() {
+			lower = AI.MIN_VALUE;
+			upper = AI.MAX_VALUE;
+		}
 	}
 
 	private Node[] table = new Node[SIZE];

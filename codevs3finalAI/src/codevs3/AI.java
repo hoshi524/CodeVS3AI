@@ -36,8 +36,8 @@ public class AI {
 		}
 	}
 
-	static final int MAX_VALUE = (Integer.MAX_VALUE >> 2);
-	static final int MIN_VALUE = (Integer.MIN_VALUE >> 2);
+	static final int MAX_VALUE = (Integer.MAX_VALUE >> 4);
+	static final int MIN_VALUE = (Integer.MIN_VALUE >> 4);
 	static final int MAX_DEPTH = 5; // 奇数制約
 
 	static final Operation[][] operationList;

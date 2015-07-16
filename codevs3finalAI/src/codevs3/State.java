@@ -25,7 +25,7 @@ public class State {
 	private final static int[] mapPosition = new int[Parameter.XY];
 	static {
 		// 角は評価を下げておく
-		mapPosition[0] = mapPosition[1] = mapPosition[11] = mapPosition[12] = mapPosition[13] = mapPosition[25] = mapPosition[117] = mapPosition[129] = mapPosition[130] = mapPosition[131] = mapPosition[141] = mapPosition[142] = -0xffff;
+		mapPosition[0] = mapPosition[1] = mapPosition[11] = mapPosition[12] = mapPosition[13] = mapPosition[25] = mapPosition[117] = mapPosition[129] = mapPosition[130] = mapPosition[131] = mapPosition[141] = mapPosition[142] = -0xff;
 	}
 	static int AiutiValue;
 	static int ac1, ac2;
@@ -294,7 +294,7 @@ public class State {
 		}
 		for (int p1 = 0; p1 < Parameter.XY; ++p1) {
 			for (int p2 = 0; p2 < Parameter.XY; ++p2) {
-				length[p1][p2] = -0xff * Math.max(0, 10 - (Math.abs(div[p1] - div[p2]) + Math.abs(mod[p1] - mod[p2])));
+				length[p1][p2] = -0xf * Math.max(0, 10 - (Math.abs(div[p1] - div[p2]) + Math.abs(mod[p1] - mod[p2])));
 			}
 		}
 	}
@@ -302,7 +302,7 @@ public class State {
 	int calcValue() {
 		Character c1 = characters[ac1], c2 = characters[ac2];
 		return length[c1.pos][c2.pos] + mapPosition[c1.pos] + mapPosition[c2.pos]
-				+ (fieldBombCount[c1.id] == 0 ? -0xffff : 0) + (fieldBombCount[c2.id] == 0 ? -0xffff : 0)
+				+ (fieldBombCount[c1.id] == 0 ? -0xfff : 0) + (fieldBombCount[c2.id] == 0 ? -0xfff : 0)
 				+ ((c1.bomb + c1.fire + c2.bomb + c2.fire) << 6);
 	}
 
