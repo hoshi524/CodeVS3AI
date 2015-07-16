@@ -63,7 +63,7 @@ public class State {
 			{
 				int time = sc.nextInt(); // time
 				// 時間がある時は相打ちを狙わない、時間がない時は積極的に相打ちを狙う
-				AiutiValue = time > 100000 ? AI.MIN_VALUE >> 4 : AI.MAX_VALUE >> 4;
+				AiutiValue = time > 100000 ? AI.MIN_VALUE >> 2 : AI.MAX_VALUE >> 2;
 			}
 			turn = sc.nextInt(); // turn
 			sc.nextInt(); // max_turn
@@ -354,7 +354,7 @@ public class State {
 				}
 				bombList.add(new Bomb(character.id, pos, operation.burstTime, fire));
 				map[pos] = Cell.BOMB;
-				character.bombCount |= 0x1fff << depth;
+				character.bombCount |= 0xfff << depth;
 				++fieldBombCount[character.id];
 			}
 			if (softBlock < bombCount && baseDanger >= enemyDanger(player_id)) return -2;

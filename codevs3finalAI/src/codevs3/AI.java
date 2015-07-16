@@ -2,6 +2,7 @@ package codevs3;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Scanner;
 
@@ -34,9 +35,9 @@ public class AI {
 		}
 	}
 
-	static final int MAX_VALUE = Integer.MAX_VALUE - (Integer.MAX_VALUE >> 2);
-	static final int MIN_VALUE = Integer.MIN_VALUE - (Integer.MIN_VALUE >> 2);
-	static final int MAX_DEPTH = 3; // 奇数制約
+	static final int MAX_VALUE = (Integer.MAX_VALUE >> 2);
+	static final int MIN_VALUE = (Integer.MIN_VALUE >> 2);
+	static final int MAX_DEPTH = 5; // 奇数制約
 
 	static final Operation[][] operationList;
 
@@ -144,13 +145,39 @@ public class AI {
 			memo = new Already();
 			already[depth].put(key, memo);
 		}
+		class Piar {
+			final int value;
+			final State s;
+			final Operation[] o;
+
+			Piar(int value, State s, Operation[] o) {
+				this.value = value;
+				this.s = s;
+				this.o = o;
+			}
+		}
+		ArrayList<Piar> moves = new ArrayList<>();
 		if (isMe) {
-			for (Operation[] operations : operationList) {
+			for (Operation[] o : operationList) {
 				State tmp = new State(now);
-				int res = tmp.operations(operations, Parameter.MY_ID, depth);
+				int res = tmp.operations(o, Parameter.MY_ID, depth);
 				// test.addNode(Arrays.deepToString(new Object[] { depth, operations, res }), MAX_DEPTH - depth);
 				if (res == 0 || res == -2) continue;
-				Next n = new Next(negamax(tmp, depth - 1, alpha, beta).value, operations);
+				int value = 0;
+				if (res == 2) {
+					value = tmp.calcValue();
+				} else if (res == 1) {
+					value = tmp.calcFleeValue() + State.AiutiValue;
+				} else if (res == 3) {
+					value = tmp.calcFleeValue() + (MIN_VALUE >> 1);
+				} else if (res == -1) {
+					value = tmp.calcFleeValue() + (MAX_VALUE >> 1);
+				}
+				moves.add(new Piar(value, tmp, o));
+			}
+			Collections.sort(moves, (o1, o2) -> o2.value - o1.value);
+			for (Piar p : moves) {
+				Next n = new Next(negamax(p.s, depth - 1, alpha, beta).value, p.o);
 				if (best.value < n.value) {
 					best = n;
 					if (best.value >= beta) break;
@@ -158,58 +185,36 @@ public class AI {
 				}
 			}
 		} else {
-			ArrayList<State> hutuuList = new ArrayList<>();
-			ArrayList<State> winList = new ArrayList<>();
-			ArrayList<State> loseList = new ArrayList<>();
-
-			for (Operation[] operations : operationList) {
+			for (Operation[] o : operationList) {
 				State tmp = new State(now);
-				int res = tmp.operations(operations, Parameter.ENEMY_ID, depth);
+				int res = tmp.operations(o, Parameter.ENEMY_ID, depth);
 				if (res == 0 || res == -2) continue;
 				// test.addNode(Arrays.deepToString(new Object[] { depth, operations, res }), MAX_DEPTH - depth);
 				tmp.step();
-				// int allyDead = dead(tmp.characters, Parameter.MY_ID), enemyDead = dead(tmp.characters, Parameter.ENEMY_ID);
-				// if (depth == 0 || allyDead > 0 || enemyDead > 0) {
+				int value = 0;
 				if (res == 2) {
-					if (depth == 0) {
-						best.value = Math.min(best.value, tmp.calcValue());
-					} else {
-						hutuuList.add(tmp);
-					}
+					value = tmp.calcValue();
 				} else if (res == 1) {
-					if (depth == 0 || dead(tmp.characters, Parameter.ENEMY_ID) > 0) {
-						best.value = Math.min(best.value, tmp.calcFleeValue() + State.AiutiValue);
-					} else {
-						hutuuList.add(tmp);
-					}
+					value = tmp.calcFleeValue() + State.AiutiValue;
 				} else if (res == 3) {
-					if (depth == 0 || dead(tmp.characters, Parameter.MY_ID) > 0) {
-						best.value = Math.min(best.value, tmp.calcFleeValue() + (MIN_VALUE >> 2));
-					} else {
-						loseList.add(tmp);
-					}
+					value = tmp.calcFleeValue() + (MIN_VALUE >> 1);
 				} else if (res == -1) {
-					if (depth == 0 || dead(tmp.characters, Parameter.ENEMY_ID) > 0) {
-						best.value = Math.min(best.value, tmp.calcFleeValue() + (MAX_VALUE >> 2));
-					} else {
-						winList.add(tmp);
-					}
+					value = tmp.calcFleeValue() + (MAX_VALUE >> 1);
 				}
-				//				} else {
-				//					Next n = negamax(tmp, depth - 1, alpha, beta);
-				//					if (best.value > n.value) {
-				//						best = n;
-				//						if (alpha >= best.value) break;
-				//						beta = Math.min(beta, best.value);
-				//					}
-				//				}
+				if (dead(tmp.characters, Parameter.ENEMY_ID) > 0 || dead(tmp.characters, Parameter.MY_ID) > 0) {
+					best.value = Math.min(best.value, value);
+				}else{
+					moves.add(new Piar(value, tmp, o));
+				}
 			}
-			if (depth > 0) {
-				ArrayList<State> nextList = winList;
-				if (loseList.size() > 0) nextList = loseList;
-				else if (hutuuList.size() > 0) nextList = hutuuList;
-				for (State state : nextList) {
-					Next n = negamax(state, depth - 1, alpha, beta);
+			if (depth == 0) {
+				for (Piar p : moves)
+					best.value = Math.min(best.value, p.value);
+			} else if (alpha < best.value) {
+				Collections.sort(moves, (o1, o2) -> o1.value - o2.value);
+				beta = Math.min(beta, best.value);
+				for (Piar p : moves) {
+					Next n = new Next(negamax(p.s, depth - 1, alpha, beta).value, p.o);
 					if (best.value > n.value) {
 						best = n;
 						if (alpha >= best.value) break;
