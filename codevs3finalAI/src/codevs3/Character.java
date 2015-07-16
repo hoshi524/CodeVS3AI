@@ -2,7 +2,7 @@ package codevs3;
 
 public class Character {
 	public final int player_id, id;
-	public int fire, bomb, bombCount, pos;
+	public int fire, bomb, pos;
 	public int deadTime;
 	public boolean dead;
 
@@ -20,6 +20,5 @@ public class Character {
 		this.pos = c.pos;
 		this.fire = c.fire;
 		this.bomb = c.bomb;
-		this.bombCount = c.bombCount;
 	}
 }

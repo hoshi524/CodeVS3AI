@@ -92,8 +92,8 @@ public class State {
 			sc.next();
 			int characters_num = sc.nextInt();
 			for (int i = 0; i < characters_num; ++i) {
-				characters[i] = new Character(sc.nextInt(), sc.nextInt(), (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1),
-						sc.nextInt(), sc.nextInt());
+				characters[i] = new Character(sc.nextInt(), sc.nextInt(), (sc.nextInt() - 1) * Parameter.X
+						+ (sc.nextInt() - 1), sc.nextInt(), sc.nextInt());
 			}
 
 			int bomb_num = sc.nextInt();
@@ -301,15 +301,16 @@ public class State {
 
 	int calcValue() {
 		Character c1 = characters[ac1], c2 = characters[ac2];
-		return length[c1.pos][c2.pos] + mapPosition[c1.pos] + c1.bombCount + mapPosition[c2.pos] + c2.bombCount
-				+ ((c1.bomb + c1.fire + c2.bomb + c2.fire) << 4);
+		return length[c1.pos][c2.pos] + mapPosition[c1.pos] + mapPosition[c2.pos]
+				+ (fieldBombCount[c1.id] == 0 ? -0xffff : 0) + (fieldBombCount[c2.id] == 0 ? -0xffff : 0)
+				+ ((c1.bomb + c1.fire + c2.bomb + c2.fire) << 6);
 	}
 
 	int calcFleeValue() {
 		return calcValue();
 	}
 
-	int operations(Operation[] operations, int player_id, int depth) {
+	int operations(Operation[] operations, int player_id) {
 		// 移動処理
 		for (Character character : characters) {
 			if (character.player_id != player_id) continue;
@@ -354,7 +355,6 @@ public class State {
 				}
 				bombList.add(new Bomb(character.id, pos, operation.burstTime, fire));
 				map[pos] = Cell.BOMB;
-				character.bombCount |= 0xfff << depth;
 				++fieldBombCount[character.id];
 			}
 			if (softBlock < bombCount && baseDanger >= enemyDanger(player_id)) return -2;
@@ -415,7 +415,8 @@ public class State {
 					if (depth > 0) {
 						for (int d : dirs) {
 							int next_pos = pos + d;
-							if (!isin(d, next_pos) || (burstMemo[next_pos] & bit) != 0 || (blockMemo[next_pos] & bit) != 0) continue;
+							if (!isin(d, next_pos) || (burstMemo[next_pos] & bit) != 0
+									|| (blockMemo[next_pos] & bit) != 0) continue;
 							if ((res = Math.max(res, liveDFS(next_pos, depth + 1))) == endDepth) return memo[depth][pos] = res;
 						}
 					}
@@ -476,7 +477,7 @@ public class State {
 		int burstMap[] = calcBurstMap();
 		long res = 0;
 		for (int pos = 0; pos < Parameter.XY; ++pos) {
-			res ^= Hash.hashMap[Math.max(0, map[pos].ordinal() - 2) * Parameter.XY + pos];
+			res ^= Hash.hashMap[map[pos].ordinal() * Parameter.XY + pos];
 			res ^= Hash.hashBomb[Math.min(burstMap[pos], 10) * Parameter.XY + pos];
 		}
 		for (Character c : characters) {

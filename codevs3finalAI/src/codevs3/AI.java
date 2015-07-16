@@ -3,8 +3,9 @@ package codevs3;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Scanner;
+
+import codevs3.TranspositionTable.Node;
 
 public class AI {
 
@@ -75,7 +76,7 @@ public class AI {
 
 	public String think(String input) {
 		for (int i = 0; i <= MAX_DEPTH; ++i)
-			already[i].clear();
+			table[i].delete();
 		State state = new State(input);
 		Next next = MTDF(state);
 		// Next next = negamax(state, MAX_DEPTH, MIN_VALUE, MAX_VALUE);
@@ -116,16 +117,10 @@ public class AI {
 		return n;
 	}
 
-	class Already {
-		Next next;
-		int lower = MIN_VALUE, upper = MAX_VALUE;
-	}
-
-	@SuppressWarnings("unchecked")
-	HashMap<Long, Already> already[] = new HashMap[MAX_DEPTH + 1];
+	TranspositionTable table[] = new TranspositionTable[MAX_DEPTH + 1];
 	{
 		for (int i = 0; i <= MAX_DEPTH; ++i) {
-			already[i] = new HashMap<>();
+			table[i] = new TranspositionTable();
 		}
 	}
 
@@ -135,15 +130,14 @@ public class AI {
 		boolean isMe = depth % 2 == 1;
 		Next best = new Next(isMe ? MIN_VALUE : MAX_VALUE, operationList[0]);
 		long key = now.getHash();
-		Already memo = already[depth].get(key);
+		Node memo = table[depth].get(key);
 		if (memo != null) {
 			if (beta < memo.lower) return new Next(memo.lower, memo.next.operations);
-			if (memo.upper < alpha) return new Next(memo.upper, memo.next.operations);
+			if (memo.upper < alpha || memo.upper == memo.lower) return new Next(memo.upper, memo.next.operations);
 			alpha = Math.max(alpha, memo.lower);
 			beta = Math.min(beta, memo.upper);
 		} else {
-			memo = new Already();
-			already[depth].put(key, memo);
+			memo = table[depth].create(key);
 		}
 		class Piar {
 			final int value;
@@ -160,7 +154,7 @@ public class AI {
 		if (isMe) {
 			for (Operation[] o : operationList) {
 				State tmp = new State(now);
-				int res = tmp.operations(o, Parameter.MY_ID, depth);
+				int res = tmp.operations(o, Parameter.MY_ID);
 				// test.addNode(Arrays.deepToString(new Object[] { depth, operations, res }), MAX_DEPTH - depth);
 				if (res == 0 || res == -2) continue;
 				int value = 0;
@@ -187,7 +181,7 @@ public class AI {
 		} else {
 			for (Operation[] o : operationList) {
 				State tmp = new State(now);
-				int res = tmp.operations(o, Parameter.ENEMY_ID, depth);
+				int res = tmp.operations(o, Parameter.ENEMY_ID);
 				if (res == 0 || res == -2) continue;
 				// test.addNode(Arrays.deepToString(new Object[] { depth, operations, res }), MAX_DEPTH - depth);
 				tmp.step();
@@ -203,7 +197,7 @@ public class AI {
 				}
 				if (dead(tmp.characters, Parameter.ENEMY_ID) > 0 || dead(tmp.characters, Parameter.MY_ID) > 0) {
 					best.value = Math.min(best.value, value);
-				}else{
+				} else {
 					moves.add(new Piar(value, tmp, o));
 				}
 			}
