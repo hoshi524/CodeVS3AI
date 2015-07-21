@@ -36,24 +36,24 @@ public class AI {
 		}
 	}
 
-	static final int MAX_VALUE = (Integer.MAX_VALUE >> 4);
-	static final int MIN_VALUE = (Integer.MIN_VALUE >> 4);
+	static final int MAX_VALUE = Integer.MAX_VALUE >> 4;
+	static final int MIN_VALUE = Integer.MIN_VALUE >> 4;
 	static final int MAX_DEPTH = 5; // 奇数制約
 
 	static final Operation[][] operationList;
 
 	// 何故か順番に依存してて変更できない
 	final static Operation operations[] = {//
-	new Operation(Move.NONE, false, 5), //0
-			new Operation(Move.DOWN, false, 5), //1
-			new Operation(Move.LEFT, false, 5), //2
-			new Operation(Move.RIGHT, false, 5), //3
-			new Operation(Move.UP, false, 5), //4
-			new Operation(Move.DOWN, true, 5), //5
-			new Operation(Move.LEFT, true, 5), //6
-			new Operation(Move.RIGHT, true, 5), //7
-			new Operation(Move.UP, true, 5), //8
-			new Operation(Move.NONE, true, 5), //9
+	new Operation(Move.NONE, false, 5), //			0
+			new Operation(Move.DOWN, false, 5), //	1
+			new Operation(Move.LEFT, false, 5), //	2
+			new Operation(Move.RIGHT, false, 5), //	3
+			new Operation(Move.UP, false, 5), //	4
+			new Operation(Move.DOWN, true, 5), //	5
+			new Operation(Move.LEFT, true, 5), //	6
+			new Operation(Move.RIGHT, true, 5), //	7
+			new Operation(Move.UP, true, 5), //		8
+			new Operation(Move.NONE, true, 5), //	9
 	};
 
 	static {
