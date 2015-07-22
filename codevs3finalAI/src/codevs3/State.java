@@ -3,7 +3,6 @@ package codevs3;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Scanner;
 
 public class State {
@@ -22,11 +21,6 @@ public class State {
 
 	private final static int BURST_MAP_INIT = 1 << 7;
 	private final static int[] dirs = new int[] { -1, 1, -Parameter.X, Parameter.X };
-	private final static int[] mapPosition = new int[Parameter.XY];
-	static {
-		// 角は評価を下げておく
-		mapPosition[0] = mapPosition[1] = mapPosition[11] = mapPosition[12] = mapPosition[13] = mapPosition[25] = mapPosition[117] = mapPosition[129] = mapPosition[130] = mapPosition[131] = mapPosition[141] = mapPosition[142] = -0xff;
-	}
 	static int AiutiValue;
 	static int ac1, ac2;
 	int turn;
@@ -133,7 +127,6 @@ public class State {
 					int pos = y * Parameter.X + x;
 					if (tmpMap[pos] != Cell.HARD_BLOCK) {
 						tmpMap[pos] = Cell.HARD_BLOCK;
-						mapPosition[pos] = (Integer.MIN_VALUE / 4);
 						break;
 					}
 					if (i == 0 && x == Parameter.X - j) i = 1;
@@ -193,7 +186,7 @@ public class State {
 			}
 		}
 		boolean attacked[] = new boolean[Parameter.XY];
-		List<Integer> softBlockList = new ArrayList<Integer>();
+		int softBlock[] = new int[0xff], ssize = 0;
 		Bomb que[] = new Bomb[bombList.size()];
 		for (int b1 = 0; b1 < bombList.size(); ++b1) {
 			Bomb b = bombList.get(b1);
@@ -216,7 +209,7 @@ public class State {
 						if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
 						attacked[next_pos] = true;
 						if (map[next_pos] == Cell.SOFT_BLOCK) {
-							softBlockList.add(next_pos);
+							softBlock[ssize++] = next_pos;
 							break;
 						} else if (map[next_pos] == Cell.BOMB) {
 							map[next_pos] = Cell.BLANK;
@@ -233,8 +226,8 @@ public class State {
 		characters[2].dead = attacked[characters[2].pos];
 		characters[3].dead = attacked[characters[3].pos];
 
-		for (int pos : softBlockList)
-			map[pos] = Cell.BLANK;
+		for (int i = 0; i < ssize; ++i)
+			map[softBlock[i]] = Cell.BLANK;
 		for (int i = 0; i < bombList.size(); ++i) {
 			Bomb b = bombList.get(i);
 			if (map[b.pos] != Cell.BOMB) {
@@ -301,8 +294,8 @@ public class State {
 
 	int calcValue() {
 		Character c1 = characters[ac1], c2 = characters[ac2];
-		return length[c1.pos][c2.pos] + mapPosition[c1.pos] + mapPosition[c2.pos] + (fieldBomb[c1.id] == 0 ? -0xfff : 0)
-				+ (fieldBomb[c2.id] == 0 ? -0xfff : 0) + ((c1.bomb + c1.fire + c2.bomb + c2.fire) << 6);
+		return length[c1.pos][c2.pos] + (fieldBomb[c1.id] == 0 ? -0xfff : 0) + (fieldBomb[c2.id] == 0 ? -0xfff : 0)
+				+ ((c1.bomb + c1.fire + c2.bomb + c2.fire) << 6);
 	}
 
 	int calcFleeValue() {

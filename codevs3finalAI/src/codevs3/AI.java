@@ -2,7 +2,6 @@ package codevs3;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Scanner;
 
 import codevs3.TranspositionTable.Node;
@@ -81,13 +80,15 @@ public class AI {
 		Next next = MTDF(state);
 		// Next next = negamax(state, MAX_DEPTH, MIN_VALUE, MAX_VALUE);
 		if (false) {
+			for (int i = 0; i <= MAX_DEPTH; ++i)
+				table[i].delete();
 			Next test = negamax(state, MAX_DEPTH, MIN_VALUE, MAX_VALUE);
 			if (test.value != next.value) {
 				debug(next.value, next.operations);
 				debug(test.value, test.operations);
 			}
 		}
-		System.err.println(String.format("%3d : %12d", state.turn, next.value));
+		System.err.println(String.format("%3d:%12d", state.turn, next.value));
 
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < Parameter.PLAYER; ++i) {
@@ -97,15 +98,8 @@ public class AI {
 		return sb.toString();
 	}
 
-	/*
-	 * 何かバグらせていそう
-	 * negamax(state, MAX_DEPTH, MIN_VALUE, MAX_VALUE, true)
-	 * と結果が一致して性能が良いことをテストしないと・・・
-	 */
 	Next MTDF(State now) {
-		int lower = MIN_VALUE;
-		int upper = MAX_VALUE;
-		int bound = 0;
+		int lower = MIN_VALUE, upper = MAX_VALUE, bound = 0;
 		Next n = new Next(MIN_VALUE, operationList[0]);
 		while (lower < upper) {
 			n = negamax(now, MAX_DEPTH, bound - 1, bound);
@@ -132,8 +126,8 @@ public class AI {
 		long key = now.getHash();
 		Node memo = table[depth].get(key);
 		if (memo != null) {
-			if (beta < memo.lower) return new Next(memo.lower, memo.next.operations);
-			if (memo.upper < alpha || memo.upper == memo.lower) return new Next(memo.upper, memo.next.operations);
+			if (beta <= memo.lower) return new Next(memo.lower, memo.next.operations);
+			if (memo.upper <= alpha || memo.upper == memo.lower) return new Next(memo.upper, memo.next.operations);
 			alpha = Math.max(alpha, memo.lower);
 			beta = Math.min(beta, memo.upper);
 		} else {
@@ -150,26 +144,23 @@ public class AI {
 				this.o = o;
 			}
 		}
-		ArrayList<Piar> moves = new ArrayList<>();
+		Piar[] moves = new Piar[128];
+		int msize = 0;
 		if (isMe) {
 			for (Operation[] o : operationList) {
 				State tmp = new State(now);
 				int res = tmp.operations(o, Parameter.MY_ID);
-				// test.addNode(Arrays.deepToString(new Object[] { depth, operations, res }), MAX_DEPTH - depth);
 				if (res == 0 || res == -2) continue;
+				// test.addNode(Arrays.deepToString(new Object[] { depth, operations, res }), MAX_DEPTH - depth);
 				int value = 0;
-				if (res == 2) {
-					value = tmp.calcValue();
-				} else if (res == 1) {
-					value = tmp.calcFleeValue() + State.AiutiValue;
-				} else if (res == 3) {
-					value = tmp.calcFleeValue() + (MIN_VALUE >> 1);
-				} else if (res == -1) {
-					value = tmp.calcFleeValue() + (MAX_VALUE >> 1);
-				}
-				moves.add(new Piar(value, tmp, o));
+				if (res == 2) value = tmp.calcValue();
+				else if (res == 1) value = tmp.calcFleeValue() + State.AiutiValue;
+				else if (res == 3) value = tmp.calcFleeValue() + (MIN_VALUE >> 1);
+				else if (res == -1) value = tmp.calcFleeValue() + (MAX_VALUE >> 1);
+				moves[msize++] = new Piar(value, tmp, o);
 			}
-			Collections.sort(moves, (o1, o2) -> o2.value - o1.value);
+			moves = Arrays.copyOf(moves, msize);
+			Arrays.sort(moves, (o1, o2) -> o2.value - o1.value);
 			for (Piar p : moves) {
 				Next n = new Next(negamax(p.s, depth - 1, alpha, beta).value, p.o);
 				if (best.value < n.value) {
@@ -186,26 +177,22 @@ public class AI {
 				// test.addNode(Arrays.deepToString(new Object[] { depth, operations, res }), MAX_DEPTH - depth);
 				tmp.step();
 				int value = 0;
-				if (res == 2) {
-					value = tmp.calcValue();
-				} else if (res == 1) {
-					value = tmp.calcFleeValue() + State.AiutiValue;
-				} else if (res == 3) {
-					value = tmp.calcFleeValue() + (MIN_VALUE >> 1);
-				} else if (res == -1) {
-					value = tmp.calcFleeValue() + (MAX_VALUE >> 1);
-				}
-				if (dead(tmp.characters, Parameter.ENEMY_ID) > 0 || dead(tmp.characters, Parameter.MY_ID) > 0) {
+				if (res == 2) value = tmp.calcValue();
+				else if (res == 1) value = tmp.calcFleeValue() + State.AiutiValue;
+				else if (res == 3) value = tmp.calcFleeValue() + (MIN_VALUE >> 1);
+				else if (res == -1) value = tmp.calcFleeValue() + (MAX_VALUE >> 1);
+				if (isDead(tmp.characters)) {
 					best.value = Math.min(best.value, value);
 				} else {
-					moves.add(new Piar(value, tmp, o));
+					moves[msize++] = new Piar(value, tmp, o);
 				}
 			}
+			moves = Arrays.copyOf(moves, msize);
 			if (depth == 0) {
 				for (Piar p : moves)
 					best.value = Math.min(best.value, p.value);
 			} else if (alpha < best.value) {
-				Collections.sort(moves, (o1, o2) -> o1.value - o2.value);
+				Arrays.sort(moves, (o1, o2) -> o1.value - o2.value);
 				beta = Math.min(beta, best.value);
 				for (Piar p : moves) {
 					Next n = new Next(negamax(p.s, depth - 1, alpha, beta).value, p.o);
@@ -218,29 +205,17 @@ public class AI {
 			}
 		}
 		memo.next = best;
-		if (best.value < alpha) memo.upper = best.value;
+		if (best.value <= alpha) memo.upper = best.value;
 		else if (best.value >= beta) memo.lower = best.value;
 		else memo.lower = memo.upper = best.value;
 		return best;
 	}
 
-	private final int dead(Character[] characters, int player_id) {
-		int dead = 0;
-		if (characters[0].dead && characters[0].player_id == player_id) ++dead;
-		if (characters[1].dead && characters[1].player_id == player_id) ++dead;
-		if (characters[2].dead && characters[2].player_id == player_id) ++dead;
-		if (characters[3].dead && characters[3].player_id == player_id) ++dead;
-		return dead;
+	private final boolean isDead(Character[] characters) {
+		return characters[0].dead || characters[1].dead || characters[2].dead || characters[3].dead;
 	}
 
 	final static void debug(final Object... obj) {
 		System.err.println(Arrays.deepToString(obj));
-	}
-
-	final static String repeat(String s, int x) {
-		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < x; ++i)
-			sb.append(s);
-		return sb.toString();
 	}
 }
