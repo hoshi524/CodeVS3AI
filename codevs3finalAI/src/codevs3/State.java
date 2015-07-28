@@ -86,11 +86,11 @@ public class State {
 			sc.next();
 			int characters_num = sc.nextInt();
 			for (int i = 0; i < characters_num; ++i) {
-				int player_id=sc.nextInt();
+				int player_id = sc.nextInt();
 				int id = sc.nextInt();
 				int pos = (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1);
 				int fire = sc.nextInt();
-				int bomb=sc.nextInt();
+				int bomb = sc.nextInt();
 				characters[i] = new Character(pos, fire, bomb);
 			}
 
@@ -103,6 +103,7 @@ public class State {
 				Bomb b = new Bomb(id, pos, limitTime, fire);
 
 				++characters[id].useBomb;
+				// characters[id].lastBomb = turn;
 				bombList.add(b);
 				map[pos] = Cell.BOMB;
 			}
@@ -281,15 +282,16 @@ public class State {
 		}
 		for (int p1 = 0; p1 < Parameter.XY; ++p1) {
 			for (int p2 = 0; p2 < Parameter.XY; ++p2) {
-				length[p1][p2] = -0xf * Math.max(0, 10 - (Math.abs(div[p1] - div[p2]) + Math.abs(mod[p1] - mod[p2])));
+				length[p1][p2] = -0xfff * Math.max(0, 8 - (Math.abs(div[p1] - div[p2]) + Math.abs(mod[p1] - mod[p2])));
 			}
 		}
 	}
 
 	int calcValue() {
-		Character c1 = characters[ID[Parameter.MY_ID][0]], c2 = characters[ID[Parameter.MY_ID][1]];
-		return length[c1.pos][c2.pos] + (c1.useBomb == 0 ? -0xfff : 0) + (c2.useBomb == 0 ? -0xfff : 0)
-				+ ((c1.bomb + c1.fire + c2.bomb + c2.fire) << 6);
+		Character a1 = characters[ID[Parameter.MY_ID][0]], a2 = characters[ID[Parameter.MY_ID][1]];
+		Character e1 = characters[ID[Parameter.ENEMY_ID][0]], e2 = characters[ID[Parameter.ENEMY_ID][1]];
+		return length[a1.pos][a2.pos] - length[e1.pos][e2.pos] - (a1.lastBomb << 5) - (a2.lastBomb << 5)
+				+ ((a1.bomb + a1.fire + a2.bomb + a2.fire) << 4);
 	}
 
 	int calcFleeValue() {
@@ -308,7 +310,7 @@ public class State {
 
 		// 爆弾処理
 		if (operations[0].magic || operations[1].magic) {
-			int baseDanger = enemyDanger(player_id), count = 0;
+			int danger = enemyDanger(player_id), count = 0;
 			for (int id : ID[player_id]) {
 				Operation operation = operations[id & 1];
 				if (!operation.magic) continue;
@@ -318,7 +320,7 @@ public class State {
 				ok: if (map[pos].isBomb()) {
 					for (int i = 0, size = bombList.size(); i < size; ++i) {
 						Bomb b = bombList.get(i);
-						if (pos == b.pos && (b.fire >= fire || b.limitTime <= operation.burstTime)) break ok;
+						if (pos == b.pos && (b.fire > fire || b.limitTime < operation.burstTime)) break ok;
 					}
 					return 0;
 				}
@@ -337,8 +339,12 @@ public class State {
 				bombList.add(new Bomb(id, pos, operation.burstTime, fire));
 				map[pos] = Cell.PUT_BOMB;
 				++c.useBomb;
+				c.lastBomb = turn;
+
+				int update = enemyDanger(player_id);
+				if (update <= danger && count > 0) return -2;
+				danger = update;
 			}
-			if (count != 0 && baseDanger >= enemyDanger(player_id)) return -2;
 		}
 		// liveDFS
 		if (bombList.size() > 0) {
@@ -430,7 +436,7 @@ public class State {
 		int enemy_id = player_id == 0 ? 1 : 0;
 		for (int id : ID[enemy_id]) {
 			Character c = characters[id];
-			enemyMap[c.pos] = 6;
+			enemyMap[c.pos] = 7;
 			que[0] = c.pos;
 			qi = 0;
 			qs = 1;
