@@ -175,13 +175,13 @@ public class AI {
 				int res = tmp.operations(o, Parameter.ENEMY_ID);
 				if (res == 0 || res == -2) continue;
 				// test.addNode(Arrays.deepToString(new Object[] { depth, operations, res }), MAX_DEPTH - depth);
-				tmp.step();
+				boolean anyDead = tmp.step();
 				int value = 0;
 				if (res == 2) value = tmp.calcValue();
 				else if (res == 1) value = tmp.calcFleeValue() + State.AiutiValue;
 				else if (res == 3) value = tmp.calcFleeValue() + (MIN_VALUE >> 1);
 				else if (res == -1) value = tmp.calcFleeValue() + (MAX_VALUE >> 1);
-				if (isDead(tmp.characters)) {
+				if (anyDead) {
 					best.value = Math.min(best.value, value);
 				} else {
 					moves[msize++] = new Piar(value, tmp, o);
@@ -209,10 +209,6 @@ public class AI {
 		else if (best.value >= beta) memo.lower = best.value;
 		else memo.lower = memo.upper = best.value;
 		return best;
-	}
-
-	private final boolean isDead(Character[] characters) {
-		return characters[0].dead || characters[1].dead || characters[2].dead || characters[3].dead;
 	}
 
 	final static void debug(final Object... obj) {

@@ -29,33 +29,6 @@ public class Parameter {
 		System.err.println();
 	}
 
-	public static final void print(State s) {
-		Parameter.println("map");
-		for (int y = 0; y < Parameter.Y; y++) {
-			for (int x = 0; x < Parameter.X; x++) {
-				boolean flag = true;
-				for (Character c : s.characters) {
-					if (c.pos == x + y * Parameter.X) {
-						if (c.player_id == Parameter.MY_ID) Parameter.print("  ap" + c.id);
-						else Parameter.print("  ep" + c.id);
-						flag = false;
-						break;
-					}
-				}
-				if (flag) Parameter.print(String.format("%5d", s.map[x + y * Parameter.X].ordinal()));
-			}
-			Parameter.println();
-		}
-		int burstMap[] = s.calcBurstMap();
-		Parameter.println("burstMap");
-		for (int y = 0; y < Parameter.Y; y++) {
-			for (int x = 0; x < Parameter.X; x++) {
-				Parameter.print(String.format("%5d", burstMap[x + y * Parameter.X]));
-			}
-			Parameter.println();
-		}
-	}
-
 	public static int MY_ID = -1;
 	public static int ENEMY_ID = -1;
 
