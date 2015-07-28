@@ -35,7 +35,7 @@ public class State {
 
 	private static final boolean isin(int dir, int next) {
 		int x = next % Parameter.X;
-		return 0 <= next && next < Parameter.XY && (x != 0 || dir != 1) && (x != (Parameter.X - 1) || dir != -1);
+		return 0 <= next && next < Parameter.XY && (x != 0 || dir != 1) && (x + 1 != Parameter.X || dir != -1);
 	}
 
 	State(State s) {
@@ -57,7 +57,7 @@ public class State {
 			{
 				int time = sc.nextInt(); // time
 				// 時間がある時は相打ちを狙わない、時間がない時は積極的に相打ちを狙う
-				AiutiValue = time > 100000 ? AI.MIN_VALUE >> 2 : AI.MAX_VALUE >> 2;
+				AiutiValue = time > 200000 ? AI.MIN_VALUE >> 2 : AI.MAX_VALUE >> 2;
 			}
 			turn = sc.nextInt(); // turn
 			sc.nextInt(); // max_turn
@@ -183,6 +183,7 @@ public class State {
 				}
 			}
 		}
+
 		boolean attacked[] = new boolean[Parameter.XY];
 		int softBlock[] = new int[0xff], ssize = 0;
 		Bomb que[] = new Bomb[bombList.size()];
@@ -282,7 +283,7 @@ public class State {
 		}
 		for (int p1 = 0; p1 < Parameter.XY; ++p1) {
 			for (int p2 = 0; p2 < Parameter.XY; ++p2) {
-				length[p1][p2] = -0xfff * Math.max(0, 8 - (Math.abs(div[p1] - div[p2]) + Math.abs(mod[p1] - mod[p2])));
+				length[p1][p2] = -0xff * Math.max(0, 8 - (Math.abs(div[p1] - div[p2]) + Math.abs(mod[p1] - mod[p2])));
 			}
 		}
 	}
@@ -290,12 +291,8 @@ public class State {
 	int calcValue() {
 		Character a1 = characters[ID[Parameter.MY_ID][0]], a2 = characters[ID[Parameter.MY_ID][1]];
 		Character e1 = characters[ID[Parameter.ENEMY_ID][0]], e2 = characters[ID[Parameter.ENEMY_ID][1]];
-		return length[a1.pos][a2.pos] - length[e1.pos][e2.pos] - (a1.lastBomb << 5) - (a2.lastBomb << 5)
-				+ ((a1.bomb + a1.fire + a2.bomb + a2.fire) << 4);
-	}
-
-	int calcFleeValue() {
-		return calcValue();
+		return length[a1.pos][a2.pos] - length[e1.pos][e2.pos] - (a1.lastBomb << 3) - (a2.lastBomb << 3)
+				+ ((a1.bomb + a1.fire + a2.bomb + a2.fire) << 2);
 	}
 
 	int operations(Operation[] operations, int player_id) {
@@ -340,6 +337,7 @@ public class State {
 				map[pos] = Cell.PUT_BOMB;
 				++c.useBomb;
 				c.lastBomb = turn;
+				burstMap = null;
 
 				int update = enemyDanger(player_id);
 				if (update <= danger && count > 0) return -2;
@@ -348,12 +346,8 @@ public class State {
 		}
 		// liveDFS
 		if (bombList.size() > 0) {
-			final int memo[][] = new int[Parameter.maxLiveDepth + 1][Parameter.XY];
 			final int burstMemo[] = new int[Parameter.XY], blockMemo[] = new int[Parameter.XY];
-			for (int i = 0; i < Parameter.maxLiveDepth; ++i)
-				Arrays.fill(memo[i], -1);
-
-			int burstMap[] = calcBurstMap();
+			final int burstMap[] = calcBurstMap();
 			for (int pos = 0; pos < Parameter.XY; ++pos) {
 				if (map[pos] == Cell.HARD_BLOCK) {
 					blockMemo[pos] = -1;
@@ -391,25 +385,23 @@ public class State {
 				}
 			}
 			final int endDepth = bombList.get(bombList.size() - 1).limitTime + 1;
+			final int memo[][] = new int[endDepth + 1][Parameter.XY];
+			Arrays.fill(memo[endDepth], endDepth);
 			class Inner {
 				int liveDFS(int pos, int depth) {
-					if (memo[depth][pos] != -1) return memo[depth][pos];
+					if (memo[depth][pos] != 0) return memo[depth][pos];
 					int bit = 1 << depth, res = depth;
-					if ((burstMemo[pos] & bit) == 0) {
-						if ((res = Math.max(res, liveDFS(pos, depth + 1))) == endDepth) return memo[depth][pos] = res;
-					}
+					if ((burstMemo[pos] & bit) == 0 && (res = Math.max(res, liveDFS(pos, depth + 1))) == endDepth) return memo[depth][pos] = res;
 					for (int d : dirs) {
 						int next_pos = pos + d;
-						if (!isin(d, next_pos) || (burstMemo[next_pos] & bit) != 0 || (blockMemo[next_pos] & bit) != 0) continue;
-						if ((res = Math.max(res, liveDFS(next_pos, depth + 1))) == endDepth) return memo[depth][pos] = res;
+						if (isin(d, next_pos) && (burstMemo[next_pos] & bit) == 0 && (blockMemo[next_pos] & bit) == 0
+								&& (res = Math.max(res, liveDFS(next_pos, depth + 1))) == endDepth) return memo[depth][pos] = res;
 					}
 					return memo[depth][pos] = res;
 				}
 			}
 			Inner func = new Inner();
-			int minDeadTime = endDepth;
-			Arrays.fill(memo[endDepth], endDepth);
-			int deadTime[] = new int[Parameter.CHARACTER_NUM];
+			int minDeadTime = endDepth, deadTime[] = new int[Parameter.CHARACTER_NUM];
 			for (int id = 0; id < Parameter.CHARACTER_NUM; ++id) {
 				Character c = characters[id];
 				if ((burstMemo[c.pos] & 1) != 0) deadTime[id] = 0;
@@ -429,21 +421,18 @@ public class State {
 	}
 
 	private int enemyDanger(int player_id) {
-		burstMap = null;
 		int burstMap[] = calcBurstMap();
 		int res = 0, que[] = new int[0x4f], qi, qs;
 		int enemyMap[] = new int[Parameter.XY];
-		int enemy_id = player_id == 0 ? 1 : 0;
-		for (int id : ID[enemy_id]) {
+		for (int id : ID[player_id == 0 ? 1 : 0]) {
 			Character c = characters[id];
-			enemyMap[c.pos] = 7;
+			enemyMap[c.pos] = 6;
 			que[0] = c.pos;
 			qi = 0;
 			qs = 1;
-			int enemyDanger = 0;
 			while (qi < qs) {
 				int now_pos = que[qi++];
-				enemyDanger += enemyMap[now_pos] * Math.max(10 - burstMap[now_pos], 0);
+				res += enemyMap[now_pos] * Math.max(10 - burstMap[now_pos], 0);
 				for (int d : dirs) {
 					int next_pos = now_pos + d;
 					if (isin(d, next_pos) && map[next_pos].canMove() && enemyMap[next_pos] < enemyMap[now_pos]) {
@@ -452,7 +441,7 @@ public class State {
 					}
 				}
 			}
-			res += enemyDanger + 100000 / qs;
+			res -= qs << 7;
 		}
 		return res;
 	}

@@ -154,9 +154,9 @@ public class AI {
 				// test.addNode(Arrays.deepToString(new Object[] { depth, operations, res }), MAX_DEPTH - depth);
 				int value = 0;
 				if (res == 2) value = tmp.calcValue();
-				else if (res == 1) value = tmp.calcFleeValue() + State.AiutiValue;
-				else if (res == 3) value = tmp.calcFleeValue() + (MIN_VALUE >> 1);
-				else if (res == -1) value = tmp.calcFleeValue() + (MAX_VALUE >> 1);
+				else if (res == 1) value = tmp.calcValue() + State.AiutiValue;
+				else if (res == 3) value = tmp.calcValue() + (MIN_VALUE >> 1);
+				else if (res == -1) value = tmp.calcValue() + (MAX_VALUE >> 1);
 				moves[msize++] = new Piar(value, tmp, o);
 			}
 			moves = Arrays.copyOf(moves, msize);
@@ -178,9 +178,9 @@ public class AI {
 				boolean anyDead = tmp.step();
 				int value = 0;
 				if (res == 2) value = tmp.calcValue();
-				else if (res == 1) value = tmp.calcFleeValue() + State.AiutiValue;
-				else if (res == 3) value = tmp.calcFleeValue() + (MIN_VALUE >> 1);
-				else if (res == -1) value = tmp.calcFleeValue() + (MAX_VALUE >> 1);
+				else if (res == 1) value = tmp.calcValue() + State.AiutiValue;
+				else if (res == 3) value = tmp.calcValue() + (MIN_VALUE >> 1);
+				else if (res == -1) value = tmp.calcValue() + (MAX_VALUE >> 1);
 				if (anyDead) {
 					best.value = Math.min(best.value, value);
 				} else {
