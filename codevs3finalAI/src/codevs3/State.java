@@ -1,8 +1,6 @@
 package codevs3;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Scanner;
 
 public class State {
@@ -31,7 +29,7 @@ public class State {
 	Cell map[] = new Cell[Parameter.XY];
 	Character characters[] = new Character[Parameter.CHARACTER_NUM];
 	private int burstMap[] = null;
-	private ArrayList<Bomb> bombList = new ArrayList<Bomb>();
+	private Bomb[] bombList = null; // sort制約
 
 	private static final boolean isin(int dir, int next) {
 		int x = next % Parameter.X;
@@ -46,8 +44,9 @@ public class State {
 		characters[1] = new Character(s.characters[1]);
 		characters[2] = new Character(s.characters[2]);
 		characters[3] = new Character(s.characters[3]);
-		for (Bomb b : s.bombList) {
-			bombList.add(new Bomb(b));
+		bombList = new Bomb[s.bombList.length];
+		for (int i = 0; i < bombList.length; ++i) {
+			bombList[i] = new Bomb(s.bombList[i]);
 		}
 	}
 
@@ -94,8 +93,8 @@ public class State {
 				characters[i] = new Character(pos, fire, bomb);
 			}
 
-			int bomb_num = sc.nextInt();
-			for (int i = 0; i < bomb_num; ++i) {
+			bombList = new Bomb[0];
+			for (int i = 0, bomb_num = sc.nextInt(); i < bomb_num; ++i) {
 				int id = sc.nextInt();
 				int pos = (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1);
 				int limitTime = sc.nextInt();
@@ -107,12 +106,13 @@ public class State {
 							break;
 						}
 				} else {
-					bombList.add(new Bomb(id, pos, limitTime, fire));
+					bombList = add(bombList, new Bomb(id, pos, limitTime, fire));
 					// characters[id].lastBomb = turn;
 					++characters[id].useBomb;
 					map[pos] = Cell.BOMB;
 				}
 			}
+			Arrays.sort(bombList);
 
 			int item_num = sc.nextInt();
 			for (int i = 0; i < item_num; ++i) {
@@ -192,7 +192,7 @@ public class State {
 
 		boolean attacked[] = new boolean[Parameter.XY];
 		int softBlock[] = new int[0xff], ssize = 0;
-		Bomb que[] = new Bomb[bombList.size()];
+		Bomb que[] = new Bomb[bombList.length];
 		for (Bomb b : bombList) {
 			if (!map[b.pos].isBomb()) continue;
 			if (b.limitTime > 0) {
@@ -233,8 +233,8 @@ public class State {
 
 		for (int i = 0; i < ssize; ++i)
 			map[softBlock[i]] = Cell.BLANK;
-		for (int i = 0; i < bombList.size(); ++i) {
-			Bomb b = bombList.get(i);
+		for (int i = 0; i < bombList.length; ++i) {
+			Bomb b = bombList[i];
 			if (map[b.pos].isBomb()) {
 				map[b.pos] = Cell.BOMB;
 			} else {
@@ -242,7 +242,7 @@ public class State {
 				if ((b.id & (1 << 1)) != 0) --characters[1].useBomb;
 				if ((b.id & (1 << 2)) != 0) --characters[2].useBomb;
 				if ((b.id & (1 << 3)) != 0) --characters[3].useBomb;
-				bombList.remove(i--);
+				bombList = remove(bombList, i--);
 			}
 		}
 		burstMap = null;
@@ -253,10 +253,8 @@ public class State {
 		if (burstMap != null) return burstMap;
 		burstMap = new int[Parameter.XY];
 		Arrays.fill(burstMap, BURST_MAP_INIT);
-		int size = bombList.size();
 		boolean used[] = new boolean[Parameter.XY];
-		Collections.sort(bombList);
-		Bomb que[] = new Bomb[size];
+		Bomb que[] = new Bomb[bombList.length];
 
 		for (Bomb t : bombList) {
 			if (used[t.pos]) continue;
@@ -321,7 +319,7 @@ public class State {
 
 		// 爆弾処理
 		if (operations[0].magic || operations[1].magic) {
-			int danger = enemyDanger(player_id), count = 0;
+			int danger = enemyDanger(player_id);
 			for (int id : ID[player_id]) {
 				Operation operation = operations[id & 1];
 				if (!operation.magic) continue;
@@ -330,44 +328,41 @@ public class State {
 				int pos = c.pos, fire = c.fire;
 				if (map[pos].isBomb()) {
 					for (Bomb b : bombList)
-						if (pos == b.pos) {
-							if (b.fire < fire || b.limitTime > operation.burstTime) break;
-							else return 0;
-						}
-				}
-				++count;
-				base: for (int d : dirs) {
-					int next_pos = pos;
-					for (int j = 0; j < fire; ++j) {
-						next_pos += d;
-						if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
-						else if (map[next_pos] == Cell.SOFT_BLOCK && burstMap[next_pos] == BURST_MAP_INIT) {
-							--count;
-							break base;
-						}
-					}
-				}
-				if (map[pos].isBomb()) {
-					for (Bomb b : bombList)
 						if (b.pos == pos) {
+							if (b.fire >= fire && b.limitTime <= operation.burstTime) return 0;
 							b.merge(id, operation.burstTime, fire);
 							break;
 						}
 				} else {
-					bombList.add(new Bomb(id, pos, operation.burstTime, fire));
+					bombList = add(bombList, new Bomb(id, pos, operation.burstTime, fire));
 					map[pos] = Cell.PUT_BOMB;
 				}
 				++c.useBomb;
 				c.lastBomb = turn;
-				burstMap = null;
+				Arrays.sort(bombList);
 
-				int update = enemyDanger(player_id);
-				if (update <= danger && count > 0) return -2;
-				danger = update;
+				{// 爆弾の有効性チェック
+					boolean notSoftBlock = true;
+					base: for (int d : dirs) {
+						int next_pos = pos;
+						for (int j = 0; j < fire; ++j) {
+							next_pos += d;
+							if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
+							else if (map[next_pos] == Cell.SOFT_BLOCK && burstMap[next_pos] == BURST_MAP_INIT) {
+								notSoftBlock = false;
+								break base;
+							}
+						}
+					}
+					burstMap = null;
+					int update = enemyDanger(player_id);
+					if (notSoftBlock && update <= danger) return -2;
+					danger = update;
+				}
 			}
 		}
 		// liveDFS
-		if (bombList.size() > 0) {
+		if (bombList.length > 0) {
 			final int burstMemo[] = new int[Parameter.XY], blockMemo[] = new int[Parameter.XY];
 			final int burstMap[] = calcBurstMap();
 			for (int pos = 0; pos < Parameter.XY; ++pos) {
@@ -379,8 +374,7 @@ public class State {
 				}
 			}
 			boolean usedBomb[] = new boolean[Parameter.XY];
-			Bomb que[] = new Bomb[bombList.size()];
-			Collections.sort(bombList);
+			Bomb que[] = new Bomb[bombList.length];
 			for (Bomb t : bombList) {
 				if (usedBomb[t.pos]) continue;
 				int qi = 0, qs = 0, bit = 1 << t.limitTime, mask = bit - 1;
@@ -412,7 +406,7 @@ public class State {
 					}
 				}
 			}
-			final int endDepth = bombList.get(bombList.size() - 1).limitTime + 1;
+			final int endDepth = bombList[bombList.length - 1].limitTime + 1;
 			final int memo[][] = new int[endDepth + 1][Parameter.XY];
 			Arrays.fill(memo[endDepth], endDepth);
 			class Inner {
@@ -484,6 +478,18 @@ public class State {
 		for (int id = 0; id < Parameter.CHARACTER_NUM; ++id) {
 			res ^= Hash.hashPlayer[id * Parameter.XY + characters[id].pos];
 		}
+		return res;
+	}
+
+	private final <T> T[] add(T[] src, T t) {
+		src = Arrays.copyOf(src, src.length + 1);
+		src[src.length - 1] = t;
+		return src;
+	}
+
+	private final <T> T[] remove(T[] src, int i) {
+		T[] res = Arrays.copyOf(src, src.length - 1);
+		if (i < res.length) System.arraycopy(src, i + 1, res, i, res.length - i);
 		return res;
 	}
 }
