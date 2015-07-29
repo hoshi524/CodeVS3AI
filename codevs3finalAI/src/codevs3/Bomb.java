@@ -1,11 +1,7 @@
 package codevs3;
 
 public class Bomb implements Comparable<Bomb> {
-	/**
-	 * TODO 同じ箇所の爆弾をまとめられるようにする
-	 * 今のところ不具合がありそうなのは、置ける爆弾数のカウントを誤りそうだから、複数id指定できるようにする
-	 */
-	public int id, pos, limitTime, fire;
+	int id, pos, limitTime, fire;
 
 	public Bomb(Bomb b) {
 		this.id = b.id;
@@ -15,10 +11,16 @@ public class Bomb implements Comparable<Bomb> {
 	}
 
 	public Bomb(int id, int pos, int limitTime, int fire) {
-		this.id = id;
+		this.id = 1 << id;
 		this.pos = pos;
 		this.limitTime = Math.min(limitTime, Parameter.maxLiveDepth - 2);
 		this.fire = fire;
+	}
+
+	public void merge(int id, int limitTime, int fire) {
+		this.id |= 1 << id;
+		this.limitTime = Math.min(this.limitTime, limitTime);
+		this.fire = Math.max(this.fire, fire);
 	}
 
 	public String toString() {

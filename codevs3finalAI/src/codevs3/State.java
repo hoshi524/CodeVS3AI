@@ -100,12 +100,18 @@ public class State {
 				int pos = (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1);
 				int limitTime = sc.nextInt();
 				int fire = sc.nextInt();
-				Bomb b = new Bomb(id, pos, limitTime, fire);
-
-				++characters[id].useBomb;
-				// characters[id].lastBomb = turn;
-				bombList.add(b);
-				map[pos] = Cell.BOMB;
+				if (map[pos].isBomb()) {
+					for (Bomb b : bombList)
+						if (b.pos == pos) {
+							b.merge(id, limitTime, fire);
+							break;
+						}
+				} else {
+					bombList.add(new Bomb(id, pos, limitTime, fire));
+					// characters[id].lastBomb = turn;
+					++characters[id].useBomb;
+					map[pos] = Cell.BOMB;
+				}
 			}
 
 			int item_num = sc.nextInt();
@@ -187,8 +193,7 @@ public class State {
 		boolean attacked[] = new boolean[Parameter.XY];
 		int softBlock[] = new int[0xff], ssize = 0;
 		Bomb que[] = new Bomb[bombList.size()];
-		for (int b1 = 0; b1 < bombList.size(); ++b1) {
-			Bomb b = bombList.get(b1);
+		for (Bomb b : bombList) {
 			if (!map[b.pos].isBomb()) continue;
 			if (b.limitTime > 0) {
 				--b.limitTime;
@@ -197,7 +202,10 @@ public class State {
 			int qi = 0, qs = 0;
 			map[b.pos] = Cell.BLANK;
 			for (Bomb nb : bombList)
-				if (b.pos == nb.pos) que[qs++] = nb;
+				if (b.pos == nb.pos) {
+					que[qs++] = nb;
+					break;
+				}
 			while (qi < qs) {
 				Bomb bb = que[qi++];
 				attacked[bb.pos] = true;
@@ -213,7 +221,10 @@ public class State {
 						} else if (map[next_pos].isBomb()) {
 							map[next_pos] = Cell.BLANK;
 							for (Bomb nb : bombList)
-								if (next_pos == nb.pos) que[qs++] = nb;
+								if (next_pos == nb.pos) {
+									que[qs++] = nb;
+									break;
+								}
 						}
 					}
 				}
@@ -227,7 +238,10 @@ public class State {
 			if (map[b.pos].isBomb()) {
 				map[b.pos] = Cell.BOMB;
 			} else {
-				--characters[b.id].useBomb;
+				if ((b.id & (1 << 0)) != 0) --characters[0].useBomb;
+				if ((b.id & (1 << 1)) != 0) --characters[1].useBomb;
+				if ((b.id & (1 << 2)) != 0) --characters[2].useBomb;
+				if ((b.id & (1 << 3)) != 0) --characters[3].useBomb;
 				bombList.remove(i--);
 			}
 		}
@@ -244,8 +258,7 @@ public class State {
 		Collections.sort(bombList);
 		Bomb que[] = new Bomb[size];
 
-		for (int i = 0; i < size; ++i) {
-			Bomb t = bombList.get(i);
+		for (Bomb t : bombList) {
 			if (used[t.pos]) continue;
 			que[0] = t;
 			int qi = 0, qs = 1, limitTime = t.limitTime;
@@ -262,10 +275,11 @@ public class State {
 						if (map[next_pos] == Cell.SOFT_BLOCK) break;
 						else if (map[next_pos].isBomb() && !used[next_pos]) {
 							used[next_pos] = true;
-							for (int k = 0; k < size; ++k) {
-								Bomb b = bombList.get(k);
-								if (next_pos == b.pos) que[qs++] = b;
-							}
+							for (Bomb b : bombList)
+								if (next_pos == b.pos) {
+									que[qs++] = b;
+									break;
+								}
 						}
 					}
 				}
@@ -314,12 +328,12 @@ public class State {
 				Character c = characters[id];
 				if (c.useBomb >= c.bomb) return 0;
 				int pos = c.pos, fire = c.fire;
-				ok: if (map[pos].isBomb()) {
-					for (int i = 0, size = bombList.size(); i < size; ++i) {
-						Bomb b = bombList.get(i);
-						if (pos == b.pos && (b.fire > fire || b.limitTime < operation.burstTime)) break ok;
-					}
-					return 0;
+				if (map[pos].isBomb()) {
+					for (Bomb b : bombList)
+						if (pos == b.pos) {
+							if (b.fire < fire || b.limitTime > operation.burstTime) break;
+							else return 0;
+						}
 				}
 				++count;
 				base: for (int d : dirs) {
@@ -333,8 +347,16 @@ public class State {
 						}
 					}
 				}
-				bombList.add(new Bomb(id, pos, operation.burstTime, fire));
-				map[pos] = Cell.PUT_BOMB;
+				if (map[pos].isBomb()) {
+					for (Bomb b : bombList)
+						if (b.pos == pos) {
+							b.merge(id, operation.burstTime, fire);
+							break;
+						}
+				} else {
+					bombList.add(new Bomb(id, pos, operation.burstTime, fire));
+					map[pos] = Cell.PUT_BOMB;
+				}
 				++c.useBomb;
 				c.lastBomb = turn;
 				burstMap = null;
@@ -359,12 +381,15 @@ public class State {
 			boolean usedBomb[] = new boolean[Parameter.XY];
 			Bomb que[] = new Bomb[bombList.size()];
 			Collections.sort(bombList);
-			for (Bomb bomb : bombList) {
-				if (usedBomb[bomb.pos]) continue;
-				int qi = 0, qs = 0, bit = 1 << bomb.limitTime, mask = bit - 1;
+			for (Bomb t : bombList) {
+				if (usedBomb[t.pos]) continue;
+				int qi = 0, qs = 0, bit = 1 << t.limitTime, mask = bit - 1;
 				for (Bomb b : bombList)
-					if (bomb.pos == b.pos) que[qs++] = b;
-				usedBomb[bomb.pos] = true;
+					if (t.pos == b.pos) {
+						que[qs++] = b;
+						break;
+					}
+				usedBomb[t.pos] = true;
 				while (qi < qs) {
 					Bomb bb = que[qi++];
 					burstMemo[bb.pos] |= bit;
@@ -377,7 +402,10 @@ public class State {
 							burstMemo[next_pos] |= bit;
 							if (map[next_pos].isBomb() && !usedBomb[next_pos]) {
 								for (Bomb b : bombList)
-									if (next_pos == b.pos) que[qs++] = b;
+									if (next_pos == b.pos) {
+										que[qs++] = b;
+										break;
+									}
 								usedBomb[next_pos] = true;
 							}
 						}
