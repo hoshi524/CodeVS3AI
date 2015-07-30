@@ -26,7 +26,7 @@ public class State {
 	private final static int[][] ID = { { 0, 1 }, { 2, 3 } };
 	static int AiutiValue;
 	int turn;
-	Cell map[] = new Cell[Parameter.XY];
+	Cell map[] = null;
 	Character characters[] = new Character[Parameter.CHARACTER_NUM];
 	private int burstMap[] = null;
 	private Bomb[] bombList = null; // sort制約
@@ -38,7 +38,8 @@ public class State {
 
 	State(State s) {
 		this.turn = s.turn;
-		System.arraycopy(s.map, 0, map, 0, Parameter.XY);
+		map = Arrays.copyOf(s.map, s.map.length);
+		burstMap = Arrays.copyOf(s.burstMap, s.burstMap.length);
 
 		characters[0] = new Character(s.characters[0]);
 		characters[1] = new Character(s.characters[1]);
@@ -64,6 +65,7 @@ public class State {
 			sc.nextInt(); // Y
 			sc.nextInt(); // X
 
+			map = new Cell[Parameter.XY];
 			sc.next();
 			for (int y = 0; y < Parameter.Y; ++y) {
 				String line = sc.next();
@@ -295,7 +297,7 @@ public class State {
 		}
 		for (int p1 = 0; p1 < Parameter.XY; ++p1) {
 			for (int p2 = 0; p2 < Parameter.XY; ++p2) {
-				length[p1][p2] = -0xff * Math.max(0, 8 - (Math.abs(div[p1] - div[p2]) + Math.abs(mod[p1] - mod[p2])));
+				length[p1][p2] = -0xf * Math.max(0, 8 - (Math.abs(div[p1] - div[p2]) + Math.abs(mod[p1] - mod[p2])));
 			}
 		}
 	}
@@ -303,8 +305,8 @@ public class State {
 	int calcValue() {
 		Character a1 = characters[ID[Parameter.MY_ID][0]], a2 = characters[ID[Parameter.MY_ID][1]];
 		Character e1 = characters[ID[Parameter.ENEMY_ID][0]], e2 = characters[ID[Parameter.ENEMY_ID][1]];
-		return length[a1.pos][a2.pos] - length[e1.pos][e2.pos] - (a1.lastBomb << 3) - (a2.lastBomb << 3)
-				+ ((a1.bomb + a1.fire + a2.bomb + a2.fire) << 2);
+		return length[a1.pos][a2.pos] - length[e1.pos][e2.pos] - (a1.lastBomb + a2.lastBomb)
+				+ (a1.bomb + a1.fire + a2.bomb + a2.fire);
 	}
 
 	int operations(Operation[] operations, int player_id) {
@@ -326,15 +328,18 @@ public class State {
 				Character c = characters[id];
 				if (c.useBomb >= c.bomb) return 0;
 				int pos = c.pos, fire = c.fire;
+				Bomb put = null;
 				if (map[pos].isBomb()) {
 					for (Bomb b : bombList)
 						if (b.pos == pos) {
-							if (b.fire >= fire && b.limitTime <= operation.burstTime) return 0;
+							if (b.fire >= fire && burstMap[pos] <= operation.burstTime) return 0;
 							b.merge(id, operation.burstTime, fire);
+							put = b;
 							break;
 						}
 				} else {
-					bombList = add(bombList, new Bomb(id, pos, operation.burstTime, fire));
+					put = new Bomb(id, pos, operation.burstTime, fire);
+					bombList = add(bombList, put);
 					map[pos] = Cell.PUT_BOMB;
 				}
 				++c.useBomb;
@@ -354,7 +359,34 @@ public class State {
 							}
 						}
 					}
-					burstMap = null;
+
+					Bomb que[] = new Bomb[bombList.length];
+					boolean used[] = new boolean[Parameter.XY];
+					que[0] = put;
+					int qi = 0, qs = 1, limitTime = Math.min(put.limitTime, burstMap[pos]);
+					used[pos] = true;
+					while (qi < qs) {
+						Bomb bb = que[qi++];
+						burstMap[bb.pos] = Math.min(burstMap[bb.pos], limitTime);
+						for (int d : dirs) {
+							int next_pos = bb.pos;
+							for (int j = 0; j < bb.fire; ++j) {
+								next_pos += d;
+								if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
+								burstMap[next_pos] = Math.min(burstMap[next_pos], limitTime);
+								if (map[next_pos] == Cell.SOFT_BLOCK) break;
+								else if (map[next_pos].isBomb() && !used[next_pos] && burstMap[next_pos] > limitTime) {
+									used[next_pos] = true;
+									for (Bomb b : bombList)
+										if (next_pos == b.pos) {
+											que[qs++] = b;
+											break;
+										}
+								}
+							}
+						}
+					}
+
 					int update = enemyDanger(player_id);
 					if (notSoftBlock && update <= danger) return -2;
 					danger = update;
