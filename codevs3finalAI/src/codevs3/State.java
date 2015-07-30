@@ -305,8 +305,7 @@ public class State {
 	int calcValue() {
 		Character a1 = characters[ID[Parameter.MY_ID][0]], a2 = characters[ID[Parameter.MY_ID][1]];
 		Character e1 = characters[ID[Parameter.ENEMY_ID][0]], e2 = characters[ID[Parameter.ENEMY_ID][1]];
-		return length[a1.pos][a2.pos] - length[e1.pos][e2.pos] - (a1.lastBomb + a2.lastBomb)
-				+ (a1.bomb + a1.fire + a2.bomb + a2.fire);
+		return length[a1.pos][a2.pos] - length[e1.pos][e2.pos] - (a1.lastBomb + a2.lastBomb) + (a1.bomb + a1.fire + a2.bomb + a2.fire);
 	}
 
 	int operations(Operation[] operations, int player_id) {
@@ -375,7 +374,7 @@ public class State {
 								if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
 								burstMap[next_pos] = Math.min(burstMap[next_pos], limitTime);
 								if (map[next_pos] == Cell.SOFT_BLOCK) break;
-								else if (map[next_pos].isBomb() && !used[next_pos] && burstMap[next_pos] > limitTime) {
+								else if (map[next_pos].isBomb() && !used[next_pos] && burstMap[next_pos] >= limitTime) {
 									used[next_pos] = true;
 									for (Bomb b : bombList)
 										if (next_pos == b.pos) {
