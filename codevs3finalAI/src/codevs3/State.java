@@ -26,8 +26,8 @@ public class State {
 	private final static int[][] ID = { { 0, 1 }, { 2, 3 } };
 	static int AiutiValue;
 	int turn;
-	Cell map[] = null;
-	Character characters[] = new Character[Parameter.CHARACTER_NUM];
+	private Cell map[] = null;
+	private Character characters[] = new Character[Parameter.CHARACTER_NUM];
 	private int burstMap[] = null;
 	private Bomb[] bombList = null; // sort制約
 
@@ -297,7 +297,7 @@ public class State {
 		}
 		for (int p1 = 0; p1 < Parameter.XY; ++p1) {
 			for (int p2 = 0; p2 < Parameter.XY; ++p2) {
-				length[p1][p2] = -0xf * Math.max(0, 8 - (Math.abs(div[p1] - div[p2]) + Math.abs(mod[p1] - mod[p2])));
+				length[p1][p2] = -0xff * Math.max(0, 8 - (Math.abs(div[p1] - div[p2]) + Math.abs(mod[p1] - mod[p2])));
 			}
 		}
 	}
@@ -352,9 +352,12 @@ public class State {
 						for (int j = 0; j < fire; ++j) {
 							next_pos += d;
 							if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
-							else if (map[next_pos] == Cell.SOFT_BLOCK && burstMap[next_pos] == BURST_MAP_INIT) {
-								notSoftBlock = false;
-								break base;
+							else if (map[next_pos] == Cell.SOFT_BLOCK) {
+								if (burstMap[next_pos] == BURST_MAP_INIT) {
+									notSoftBlock = false;
+									break base;
+								}
+								break;
 							}
 						}
 					}
@@ -387,7 +390,7 @@ public class State {
 					}
 
 					int update = enemyDanger(player_id);
-					if (notSoftBlock && update <= danger) return -2;
+					if (notSoftBlock && update <= danger) return 0;
 					danger = update;
 				}
 			}
@@ -404,17 +407,13 @@ public class State {
 					else blockMemo[pos] = (1 << (burstMap[pos] + 1)) - 1;
 				}
 			}
-			boolean usedBomb[] = new boolean[Parameter.XY];
+			boolean used[] = new boolean[Parameter.XY];
 			Bomb que[] = new Bomb[bombList.length];
 			for (Bomb t : bombList) {
-				if (usedBomb[t.pos]) continue;
-				int qi = 0, qs = 0, bit = 1 << t.limitTime, mask = bit - 1;
-				for (Bomb b : bombList)
-					if (t.pos == b.pos) {
-						que[qs++] = b;
-						break;
-					}
-				usedBomb[t.pos] = true;
+				if (used[t.pos]) continue;
+				int qi = 0, qs = 1, bit = 1 << t.limitTime, mask = bit - 1;
+				que[0] = t;
+				used[t.pos] = true;
 				while (qi < qs) {
 					Bomb bb = que[qi++];
 					burstMemo[bb.pos] |= bit;
@@ -425,13 +424,13 @@ public class State {
 							next_pos += d;
 							if (!isin(d, next_pos) || (blockMemo[next_pos] & bit) != 0) break;
 							burstMemo[next_pos] |= bit;
-							if (map[next_pos].isBomb() && !usedBomb[next_pos]) {
+							if (map[next_pos].isBomb() && !used[next_pos]) {
 								for (Bomb b : bombList)
 									if (next_pos == b.pos) {
 										que[qs++] = b;
 										break;
 									}
-								usedBomb[next_pos] = true;
+								used[next_pos] = true;
 							}
 						}
 					}

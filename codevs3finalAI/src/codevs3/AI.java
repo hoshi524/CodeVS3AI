@@ -150,7 +150,7 @@ public class AI {
 			for (Operation[] o : operationList) {
 				State tmp = new State(now);
 				int res = tmp.operations(o, Parameter.MY_ID);
-				if (res == 0 || res == -2) continue;
+				if (res == 0) continue;
 				// test.addNode(Arrays.deepToString(new Object[] { depth, operations, res }), MAX_DEPTH - depth);
 				int value = 0;
 				if (res == 2) value = tmp.calcValue();
@@ -173,7 +173,7 @@ public class AI {
 			for (Operation[] o : operationList) {
 				State tmp = new State(now);
 				int res = tmp.operations(o, Parameter.ENEMY_ID);
-				if (res == 0 || res == -2) continue;
+				if (res == 0) continue;
 				// test.addNode(Arrays.deepToString(new Object[] { depth, operations, res }), MAX_DEPTH - depth);
 				boolean anyDead = tmp.step();
 				int value = 0;
