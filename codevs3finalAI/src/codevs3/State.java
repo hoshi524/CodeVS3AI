@@ -298,10 +298,10 @@ public class State {
 		// 移動処理
 		for (int id : ID[player_id]) {
 			Operation operation = operations[id & 1];
+			if (operation.move == Move.NONE) continue;
 			Character c = characters[id];
-			int next_pos = c.pos + operation.move.dir;
-			if (operation.move != Move.NONE && (!isin(operation.move.dir, next_pos) || map[next_pos].cantMove())) return 0;
-			c.pos = next_pos;
+			c.pos += operation.move.dir;
+			if (!isin(operation.move.dir, c.pos) || map[c.pos].cantMove()) return 0;
 		}
 
 		// 爆弾処理
@@ -408,20 +408,21 @@ public class State {
 					blockMemo[pos] = -1;
 				} else if (map[pos] == Cell.SOFT_BLOCK) {
 					if (burstMap[pos] == BURST_MAP_INIT) blockMemo[pos] = -1;
-					else blockMemo[pos] = (1 << (burstMap[pos] + 1)) - 1;
+					else blockMemo[pos] = (1 << burstMap[pos]) - 1;
+				} else if (map[pos].isBomb()) {
+					blockMemo[pos] = (1 << burstMap[pos]) - 1;
 				}
 			}
 			boolean used[] = new boolean[Parameter.XY];
 			Bomb que[] = new Bomb[bombList.length];
 			for (Bomb t : bombList) {
 				if (used[t.pos]) continue;
-				int qi = 0, qs = 1, bit = 1 << t.limitTime, mask = bit - 1;
+				int qi = 0, qs = 1, bit = 1 << t.limitTime;
 				que[0] = t;
 				used[t.pos] = true;
 				while (qi < qs) {
 					Bomb bb = que[qi++];
 					burstMemo[bb.pos] |= bit;
-					blockMemo[bb.pos] |= mask;
 					for (int d : dirs) {
 						int next_pos = bb.pos;
 						for (int j = 0; j < bb.fire; j++) {
