@@ -408,7 +408,7 @@ public class State {
 					blockMemo[pos] = -1;
 				} else if (map[pos] == Cell.SOFT_BLOCK) {
 					if (burstMap[pos] == BURST_MAP_INIT) blockMemo[pos] = -1;
-					else blockMemo[pos] = (1 << burstMap[pos]) - 1;
+					else blockMemo[pos] = (1 << (burstMap[pos] + 1)) - 1;
 				} else if (map[pos].isBomb()) {
 					blockMemo[pos] = (1 << burstMap[pos]) - 1;
 				}
