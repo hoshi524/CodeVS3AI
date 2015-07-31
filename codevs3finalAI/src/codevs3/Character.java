@@ -8,7 +8,7 @@ public class Character {
 		this.fire = fire;
 		this.bomb = bomb;
 		this.useBomb = 0;
-		this.lastBomb = 1000;
+		this.lastBomb = Parameter.MAX_TURN;
 	}
 
 	public Character(Character c) {

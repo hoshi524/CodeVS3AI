@@ -11,6 +11,7 @@ public class Parameter {
 	public static final int MIN_FIRE_TIME_INITIAL = 5;
 	public static final int PLAYER = 2;
 	public static final int maxLiveDepth = 8;
+	public static final int MAX_TURN = 1000;
 
 	public static final boolean DEBUG = false;
 
