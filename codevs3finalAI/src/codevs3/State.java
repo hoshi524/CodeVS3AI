@@ -24,6 +24,26 @@ public class State {
 	private final static int BURST_MAP_INIT = 1 << 7;
 	private final static int[] dirs = new int[] { -1, 1, -Parameter.X, Parameter.X };
 	private final static int[][] ID = { { 0, 1 }, { 2, 3 } };
+	private final static int[][] NEXT = new int[Parameter.XY][];
+
+	private final static boolean isHardBlock(int p) {
+		int y = p / Parameter.X, x = p % Parameter.X;
+		return y % 2 == 1 && x % 2 == 1;
+	}
+
+	static {
+		for (int i = 0; i < NEXT.length; ++i) {
+			int n[] = new int[0];
+			for (int d : dirs) {
+				if (isin(d, i + d) && !isHardBlock(i + d)) {
+					n = Arrays.copyOf(n, n.length + 1);
+					n[n.length - 1] = i + d;
+				}
+			}
+			NEXT[i] = n;
+		}
+	}
+
 	static int AiutiValue;
 	int turn;
 	private Cell map[] = null;
@@ -236,7 +256,8 @@ public class State {
 			}
 		}
 		burstMap = null;
-		return attacked[characters[0].pos] || attacked[characters[1].pos] || attacked[characters[2].pos] || attacked[characters[3].pos];
+		return attacked[characters[0].pos] || attacked[characters[1].pos] || attacked[characters[2].pos]
+				|| attacked[characters[3].pos];
 	}
 
 	int[] calcBurstMap() {
@@ -291,7 +312,8 @@ public class State {
 	int calcValue() {
 		Character a1 = characters[ID[Parameter.MY_ID][0]], a2 = characters[ID[Parameter.MY_ID][1]];
 		Character e1 = characters[ID[Parameter.ENEMY_ID][0]], e2 = characters[ID[Parameter.ENEMY_ID][1]];
-		return length[a1.pos][a2.pos] - length[e1.pos][e2.pos] - (a1.lastBomb + a2.lastBomb) + (a1.bomb + a1.fire + a2.bomb + a2.fire);
+		return length[a1.pos][a2.pos] - length[e1.pos][e2.pos] - (a1.lastBomb + a2.lastBomb)
+				+ (a1.bomb + a1.fire + a2.bomb + a2.fire);
 	}
 
 	int operations(Operation[] operations, int player_id) {
@@ -317,9 +339,8 @@ public class State {
 					qs = 1;
 					while (qi < qs) {
 						int now_pos = que[qi++];
-						for (int d : dirs) {
-							int next_pos = now_pos + d;
-							if (isin(d, next_pos) && map[next_pos].canMove() && enemyMap[next_pos] + 1 < enemyMap[now_pos]) {
+						for (int next_pos : NEXT[now_pos]) {
+							if (map[next_pos].canMove() && enemyMap[next_pos] + 1 < enemyMap[now_pos]) {
 								enemyMap[next_pos] = enemyMap[now_pos] - 1;
 								if (enemyMap[next_pos] > 1) que[qs++] = next_pos;
 							}
@@ -445,11 +466,12 @@ public class State {
 			class Inner {
 				int liveDFS(int pos, int depth) {
 					if (memo[depth][pos] != 0) return memo[depth][pos];
-					int bit = 1 << depth, res = depth;
+					int bit = 1 << depth, mask = ~(bit - 1);
+					if ((burstMemo[pos] & mask) == 0) return memo[depth][pos] = endDepth;
+					int res = depth;
 					if ((burstMemo[pos] & bit) == 0 && (res = Math.max(res, liveDFS(pos, depth + 1))) == endDepth) return memo[depth][pos] = res;
-					for (int d : dirs) {
-						int next_pos = pos + d;
-						if (isin(d, next_pos) && (burstMemo[next_pos] & bit) == 0 && (blockMemo[next_pos] & bit) == 0
+					for (int next_pos : NEXT[pos]) {
+						if ((burstMemo[next_pos] & bit) == 0 && (blockMemo[next_pos] & bit) == 0
 								&& (res = Math.max(res, liveDFS(next_pos, depth + 1))) == endDepth) return memo[depth][pos] = res;
 					}
 					return memo[depth][pos] = res;
@@ -464,9 +486,11 @@ public class State {
 				minDeadTime = Math.min(minDeadTime, deadTime[id]);
 			}
 			if (minDeadTime < endDepth) {
-				int allyDead = (deadTime[ID[player_id][0]] == minDeadTime ? 1 : 0) + (deadTime[ID[player_id][1]] == minDeadTime ? 1 : 0);
+				int allyDead = (deadTime[ID[player_id][0]] == minDeadTime ? 1 : 0)
+						+ (deadTime[ID[player_id][1]] == minDeadTime ? 1 : 0);
 				int enemy_id = player_id == 0 ? 1 : 0;
-				int enemyDead = (deadTime[ID[enemy_id][0]] == minDeadTime ? 1 : 0) + (deadTime[ID[enemy_id][1]] == minDeadTime ? 1 : 0);
+				int enemyDead = (deadTime[ID[enemy_id][0]] == minDeadTime ? 1 : 0)
+						+ (deadTime[ID[enemy_id][1]] == minDeadTime ? 1 : 0);
 				if (allyDead == enemyDead) return 1;
 				else if (allyDead > enemyDead) return -1;
 				else if (allyDead < enemyDead) return 3;
@@ -494,13 +518,13 @@ public class State {
 		return res;
 	}
 
-	private final <T> T[] add(T[] src, T t) {
+	private static final <T> T[] add(T[] src, T t) {
 		src = Arrays.copyOf(src, src.length + 1);
 		src[src.length - 1] = t;
 		return src;
 	}
 
-	private final <T> T[] remove(T[] src, int i) {
+	private static final <T> T[] remove(T[] src, int i) {
 		T[] res = Arrays.copyOf(src, src.length - 1);
 		if (i < res.length) System.arraycopy(src, i + 1, res, i, res.length - i);
 		return res;
