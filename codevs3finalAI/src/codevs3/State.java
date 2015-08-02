@@ -9,7 +9,7 @@ public class State {
 		NUMBER, POWER, BLANK, BOMB, PUT_BOMB, SOFT_BLOCK, HARD_BLOCK;
 
 		boolean canMove() {
-			return this == BLANK || this == NUMBER || this == POWER;
+			return this == BLANK || this == NUMBER || this == POWER || this == PUT_BOMB;
 		}
 
 		boolean cantMove() {
@@ -44,7 +44,6 @@ public class State {
 		}
 	}
 
-	static int AiutiValue;
 	int turn;
 	private Cell map[] = null;
 	private Character characters[] = new Character[Parameter.CHARACTER_NUM];
@@ -77,7 +76,9 @@ public class State {
 			{
 				int time = sc.nextInt(); // time
 				// 時間がある時は相打ちを狙わない、時間がない時は積極的に相打ちを狙う
-				AiutiValue = time > 200000 ? AI.MIN_VALUE >> 2 : AI.MAX_VALUE >> 2;
+				AI.AiutiValue = time > 200000 ? AI.MIN_VALUE >> 2 : AI.MAX_VALUE >> 2;
+				// どうしても時間が切れるので時間が無くなったらdepthを減らす
+				AI.MAX_DEPTH = time > 100000 ? 5 : 3; // 奇数制約
 			}
 			turn = sc.nextInt(); // turn
 			sc.nextInt(); // max_turn
@@ -171,6 +172,9 @@ public class State {
 	}
 
 	boolean step() {
+		if (burstMap[characters[0].pos] == 0 || burstMap[characters[1].pos] == 0 || burstMap[characters[2].pos] == 0
+				|| burstMap[characters[3].pos] == 0) return true;
+
 		if (map[characters[0].pos] == Cell.NUMBER) ++characters[0].bomb;
 		else if (map[characters[0].pos] == Cell.POWER) ++characters[0].fire;
 		if (map[characters[1].pos] == Cell.NUMBER) ++characters[1].bomb;
@@ -227,11 +231,8 @@ public class State {
 				--b.limitTime;
 			}
 		}
-
-		boolean anyDead = burstMap[characters[0].pos] == 0 || burstMap[characters[1].pos] == 0
-				|| burstMap[characters[2].pos] == 0 || burstMap[characters[3].pos] == 0;
 		burstMap = null;
-		return anyDead;
+		return false;
 	}
 
 	int[] calcBurstMap() {
@@ -293,11 +294,11 @@ public class State {
 	boolean operations(Operation[] operations, int player_id) {
 		// 移動処理
 		for (int id : ID[player_id]) {
-			Operation operation = operations[id & 1];
-			if (operation.move == Move.NONE) continue;
+			Operation o = operations[id & 1];
+			if (o.move == Move.NONE) continue;
 			Character c = characters[id];
-			c.pos += operation.move.dir;
-			if (!isin(operation.move.dir, c.pos) || map[c.pos].cantMove()) return false;
+			c.pos += o.move.dir;
+			if (!isin(o.move.dir, c.pos) || map[c.pos].cantMove()) return false;
 		}
 
 		// 爆弾処理
@@ -323,19 +324,19 @@ public class State {
 				}
 			}
 			for (int id : ID[player_id]) {
-				Operation operation = operations[id & 1];
-				if (!operation.magic) continue;
+				Operation o = operations[id & 1];
+				if (!o.magic) continue;
 				Character c = characters[id];
 				if (c.useBomb >= c.bomb) return false;
 				int pos = c.pos, fire = c.fire;
 				Bomb put = null;
 				if (map[pos].isBomb()) {
 					Bomb b = getBomb(pos);
-					if (b.fire >= fire && burstMap[pos] <= operation.burstTime) return false;
-					b.merge(id, operation.burstTime, fire);
+					if (b.fire >= fire && burstMap[pos] <= o.burstTime) return false;
+					b.merge(id, o.burstTime, fire);
 					put = b;
 				} else {
-					put = new Bomb(id, pos, operation.burstTime, fire);
+					put = new Bomb(id, pos, o.burstTime, fire);
 					bombList = add(bombList, put);
 					map[pos] = Cell.PUT_BOMB;
 				}
@@ -345,47 +346,33 @@ public class State {
 
 				{// 爆弾の有効性チェック
 					boolean notValid = enemyMap[pos] == 0;
-					base: for (int d : dirs) {
-						int next_pos = pos;
-						for (int j = 0; j < fire; ++j) {
-							next_pos += d;
-							if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
-							else if (map[next_pos] == Cell.SOFT_BLOCK) {
-								if (burstMap[next_pos] == BURST_MAP_INIT) {
-									notValid = false;
-									break base;
-								}
-								break;
-							}
-						}
-					}
-
 					Bomb que[] = new Bomb[bombList.length];
-					boolean used[] = new boolean[Parameter.XY];
 					que[0] = put;
-					int qi = 0, qs = 1, limitTime = Math.min(put.limitTime, burstMap[pos]);
+					boolean used[] = new boolean[Parameter.XY];
 					used[pos] = true;
+					int qi = 0, qs = 1, limitTime = Math.min(put.limitTime, burstMap[pos]);
+					burstMap[pos] = limitTime;
 					while (qi < qs) {
 						Bomb bb = que[qi++];
-						if (burstMap[bb.pos] > limitTime) {
-							burstMap[bb.pos] = limitTime;
-							notValid &= enemyMap[bb.pos] == 0;
-						}
 						for (int d : dirs) {
 							int next_pos = bb.pos;
 							for (int j = 0; j < bb.fire; ++j) {
 								next_pos += d;
 								if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
+								int tmp = burstMap[next_pos];
 								if (burstMap[next_pos] > limitTime) {
 									burstMap[next_pos] = limitTime;
 									notValid &= enemyMap[next_pos] == 0;
+									if (map[next_pos].isBomb() && !used[next_pos]) {
+										used[next_pos] = true;
+										Bomb b = getBomb(next_pos);
+										que[qs++] = b;
+										if (b.fire + j >= bb.fire) break;
+									}
 								}
-								if (map[next_pos] == Cell.SOFT_BLOCK) break;
-								else if (map[next_pos].isBomb() && !used[next_pos] && burstMap[next_pos] >= limitTime) {
-									used[next_pos] = true;
-									Bomb b = getBomb(next_pos);
-									que[qs++] = b;
-									if (b.fire + j >= bb.fire) break;
+								if (map[next_pos] == Cell.SOFT_BLOCK) {
+									notValid &= tmp != BURST_MAP_INIT;
+									break;
 								}
 							}
 						}

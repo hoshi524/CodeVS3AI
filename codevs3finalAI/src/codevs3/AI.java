@@ -37,7 +37,8 @@ public class AI {
 
 	static final int MAX_VALUE = Integer.MAX_VALUE >> 10;
 	static final int MIN_VALUE = Integer.MIN_VALUE >> 10;
-	static final int MAX_DEPTH = 5; // 奇数制約
+	static int MAX_DEPTH = 5; // 奇数制約
+	static int AiutiValue;
 
 	static final Operation[][] operationList;
 
@@ -163,10 +164,10 @@ public class AI {
 					int res = tmp.check();
 					int value = 0;
 					if (res == 2) value = tmp.calcValue();
-					else if (res == 1) value = tmp.calcValue() + State.AiutiValue;
+					else if (res == 1) value = tmp.calcValue() + AiutiValue;
 					else if (res == 3) value = tmp.calcValue() + (MIN_VALUE >> 1);
 					else if (res == -1) value = tmp.calcValue() + (MAX_VALUE >> 1);
-					if (tmp.step() || depth == 0) {
+					if (depth == 0 || tmp.step()) {
 						best.value = Math.min(best.value, value);
 					} else {
 						moves[msize++] = new Piar(value, tmp, o);
