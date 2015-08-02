@@ -208,56 +208,30 @@ public class State {
 			}
 		}
 
-		boolean attacked[] = new boolean[Parameter.XY];
-		int softBlock[] = new int[0xff], ssize = 0;
-		Bomb que[] = new Bomb[bombList.length];
-		for (Bomb b : bombList) {
-			if (!map[b.pos].isBomb()) continue;
-			if (b.limitTime > 0) {
-				--b.limitTime;
-				continue;
-			}
-			int qi = 0, qs = 0;
-			map[b.pos] = Cell.BLANK;
-			que[qs++] = b;
-			while (qi < qs) {
-				Bomb bb = que[qi++];
-				attacked[bb.pos] = true;
-				for (int d : dirs) {
-					int next_pos = bb.pos;
-					for (int j = 0; j < bb.fire; ++j) {
-						next_pos += d;
-						if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
-						attacked[next_pos] = true;
-						if (map[next_pos] == Cell.SOFT_BLOCK) {
-							softBlock[ssize++] = next_pos;
-							break;
-						} else if (map[next_pos].isBomb()) {
-							map[next_pos] = Cell.BLANK;
-							que[qs++] = getBomb(next_pos);
-						}
-					}
-				}
+		for (int p = 0; p < Parameter.XY; ++p) {
+			if (map[p] == Cell.SOFT_BLOCK && burstMap[p] == 0) {
+				map[p] = Cell.BLANK;
 			}
 		}
-
-		for (int i = 0; i < ssize; ++i)
-			map[softBlock[i]] = Cell.BLANK;
 		for (int i = 0; i < bombList.length; ++i) {
 			Bomb b = bombList[i];
-			if (map[b.pos].isBomb()) {
-				map[b.pos] = Cell.BOMB;
-			} else {
+			if (burstMap[b.pos] == 0) {
 				if ((b.id & (1 << 0)) != 0) --characters[0].useBomb;
 				if ((b.id & (1 << 1)) != 0) --characters[1].useBomb;
 				if ((b.id & (1 << 2)) != 0) --characters[2].useBomb;
 				if ((b.id & (1 << 3)) != 0) --characters[3].useBomb;
 				bombList = remove(bombList, i--);
+				map[b.pos] = Cell.BLANK;
+			} else {
+				map[b.pos] = Cell.BOMB;
+				--b.limitTime;
 			}
 		}
+
+		boolean anyDead = burstMap[characters[0].pos] == 0 || burstMap[characters[1].pos] == 0
+				|| burstMap[characters[2].pos] == 0 || burstMap[characters[3].pos] == 0;
 		burstMap = null;
-		return attacked[characters[0].pos] || attacked[characters[1].pos] || attacked[characters[2].pos]
-				|| attacked[characters[3].pos];
+		return anyDead;
 	}
 
 	int[] calcBurstMap() {
