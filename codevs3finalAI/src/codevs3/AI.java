@@ -118,8 +118,6 @@ public class AI {
 		}
 	}
 
-	// DebugDFS test = new DebugDFS();
-
 	Next negamax(State now, int depth, int alpha, int beta) {
 		boolean isMe = depth % 2 == 1;
 		Next best = new Next(isMe ? MIN_VALUE : MAX_VALUE, operationList[0]);
@@ -133,65 +131,50 @@ public class AI {
 		} else {
 			memo = table[depth].create(key);
 		}
-		class Piar {
-			final int value;
-			final State s;
-			final Operation[] o;
-
-			Piar(int value, State s, Operation[] o) {
-				this.value = value;
-				this.s = s;
-				this.o = o;
-			}
-		}
-		Piar[] moves = new Piar[128];
-		int msize = 0;
 		if (isMe) {
 			for (Operation[] o : operationList) {
 				State tmp = new State(now);
-				int res = tmp.operations(o, Parameter.MY_ID);
-				if (res == 0) continue;
-				// test.addNode(Arrays.deepToString(new Object[] { depth, operations, res }), MAX_DEPTH - depth);
-				int value = 0;
-				if (res == 2) value = tmp.calcValue();
-				else if (res == 1) value = tmp.calcValue() + State.AiutiValue;
-				else if (res == 3) value = tmp.calcValue() + (MIN_VALUE >> 1);
-				else if (res == -1) value = tmp.calcValue() + (MAX_VALUE >> 1);
-				moves[msize++] = new Piar(value, tmp, o);
-			}
-			moves = Arrays.copyOf(moves, msize);
-			Arrays.sort(moves, (o1, o2) -> o2.value - o1.value);
-			for (Piar p : moves) {
-				Next n = new Next(negamax(p.s, depth - 1, alpha, beta).value, p.o);
-				if (best.value < n.value) {
-					best = n;
-					if (best.value >= beta) break;
-					alpha = Math.max(alpha, best.value);
+				if (tmp.operations(o, Parameter.MY_ID)) {
+					Next n = new Next(negamax(tmp, depth - 1, alpha, beta).value, o);
+					if (best.value < n.value) {
+						best = n;
+						if (best.value >= beta) break;
+						alpha = Math.max(alpha, best.value);
+					}
 				}
 			}
 		} else {
-			for (Operation[] o : operationList) {
-				State tmp = new State(now);
-				int res = tmp.operations(o, Parameter.ENEMY_ID);
-				if (res == 0) continue;
-				// test.addNode(Arrays.deepToString(new Object[] { depth, operations, res }), MAX_DEPTH - depth);
-				boolean anyDead = tmp.step();
-				int value = 0;
-				if (res == 2) value = tmp.calcValue();
-				else if (res == 1) value = tmp.calcValue() + State.AiutiValue;
-				else if (res == 3) value = tmp.calcValue() + (MIN_VALUE >> 1);
-				else if (res == -1) value = tmp.calcValue() + (MAX_VALUE >> 1);
-				if (anyDead) {
-					best.value = Math.min(best.value, value);
-				} else {
-					moves[msize++] = new Piar(value, tmp, o);
+			class Piar {
+				final int value;
+				final State s;
+				final Operation[] o;
+
+				Piar(int value, State s, Operation[] o) {
+					this.value = value;
+					this.s = s;
+					this.o = o;
 				}
 			}
-			moves = Arrays.copyOf(moves, msize);
-			if (depth == 0) {
-				for (Piar p : moves)
-					best.value = Math.min(best.value, p.value);
-			} else if (alpha < best.value) {
+			Piar[] moves = new Piar[128];
+			int msize = 0;
+			for (Operation[] o : operationList) {
+				State tmp = new State(now);
+				if (tmp.operations(o, Parameter.ENEMY_ID)) {
+					int res = tmp.check();
+					int value = 0;
+					if (res == 2) value = tmp.calcValue();
+					else if (res == 1) value = tmp.calcValue() + State.AiutiValue;
+					else if (res == 3) value = tmp.calcValue() + (MIN_VALUE >> 1);
+					else if (res == -1) value = tmp.calcValue() + (MAX_VALUE >> 1);
+					if (tmp.step() || depth == 0) {
+						best.value = Math.min(best.value, value);
+					} else {
+						moves[msize++] = new Piar(value, tmp, o);
+					}
+				}
+			}
+			if (msize > 0 && alpha < best.value) {
+				moves = Arrays.copyOf(moves, msize);
 				Arrays.sort(moves, (o1, o2) -> o1.value - o2.value);
 				beta = Math.min(beta, best.value);
 				for (Piar p : moves) {

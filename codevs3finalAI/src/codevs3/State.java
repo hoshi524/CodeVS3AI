@@ -316,14 +316,14 @@ public class State {
 				+ (a1.bomb + a1.fire + a2.bomb + a2.fire);
 	}
 
-	int operations(Operation[] operations, int player_id) {
+	boolean operations(Operation[] operations, int player_id) {
 		// 移動処理
 		for (int id : ID[player_id]) {
 			Operation operation = operations[id & 1];
 			if (operation.move == Move.NONE) continue;
 			Character c = characters[id];
 			c.pos += operation.move.dir;
-			if (!isin(operation.move.dir, c.pos) || map[c.pos].cantMove()) return 0;
+			if (!isin(operation.move.dir, c.pos) || map[c.pos].cantMove()) return false;
 		}
 
 		// 爆弾処理
@@ -352,12 +352,12 @@ public class State {
 				Operation operation = operations[id & 1];
 				if (!operation.magic) continue;
 				Character c = characters[id];
-				if (c.useBomb >= c.bomb) return 0;
+				if (c.useBomb >= c.bomb) return false;
 				int pos = c.pos, fire = c.fire;
 				Bomb put = null;
 				if (map[pos].isBomb()) {
 					Bomb b = getBomb(pos);
-					if (b.fire >= fire && burstMap[pos] <= operation.burstTime) return 0;
+					if (b.fire >= fire && burstMap[pos] <= operation.burstTime) return false;
 					b.merge(id, operation.burstTime, fire);
 					put = b;
 				} else {
@@ -417,11 +417,14 @@ public class State {
 						}
 					}
 
-					if (notValid) return 0;
+					if (notValid) return false;
 				}
 			}
 		}
-		// liveDFS
+		return true;
+	}
+
+	int check() {
 		if (bombList.length > 0) {
 			final int burstMemo[] = new int[Parameter.XY], blockMemo[] = new int[Parameter.XY];
 			for (int pos = 0; pos < Parameter.XY; ++pos) {
@@ -486,14 +489,13 @@ public class State {
 				minDeadTime = Math.min(minDeadTime, deadTime[id]);
 			}
 			if (minDeadTime < endDepth) {
-				int allyDead = (deadTime[ID[player_id][0]] == minDeadTime ? 1 : 0)
-						+ (deadTime[ID[player_id][1]] == minDeadTime ? 1 : 0);
-				int enemy_id = player_id == 0 ? 1 : 0;
-				int enemyDead = (deadTime[ID[enemy_id][0]] == minDeadTime ? 1 : 0)
-						+ (deadTime[ID[enemy_id][1]] == minDeadTime ? 1 : 0);
+				int allyDead = (deadTime[ID[Parameter.MY_ID][0]] == minDeadTime ? 1 : 0)
+						+ (deadTime[ID[Parameter.MY_ID][1]] == minDeadTime ? 1 : 0);
+				int enemyDead = (deadTime[ID[Parameter.ENEMY_ID][0]] == minDeadTime ? 1 : 0)
+						+ (deadTime[ID[Parameter.ENEMY_ID][1]] == minDeadTime ? 1 : 0);
 				if (allyDead == enemyDead) return 1;
-				else if (allyDead > enemyDead) return -1;
-				else if (allyDead < enemyDead) return 3;
+				else if (allyDead > enemyDead) return 3;
+				else if (allyDead < enemyDead) return -1;
 			}
 		}
 		return 2;
