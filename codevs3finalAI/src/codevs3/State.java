@@ -171,10 +171,12 @@ public class State {
 		}
 	}
 
-	boolean step() {
-		if (burstMap[characters[0].pos] == 0 || burstMap[characters[1].pos] == 0 || burstMap[characters[2].pos] == 0
-				|| burstMap[characters[3].pos] == 0) return true;
+	boolean anyDead() {
+		return burstMap[characters[0].pos] == 0 || burstMap[characters[1].pos] == 0 || burstMap[characters[2].pos] == 0
+				|| burstMap[characters[3].pos] == 0;
+	}
 
+	void step() {
 		if (map[characters[0].pos] == Cell.NUMBER) ++characters[0].bomb;
 		else if (map[characters[0].pos] == Cell.POWER) ++characters[0].fire;
 		if (map[characters[1].pos] == Cell.NUMBER) ++characters[1].bomb;
@@ -188,6 +190,31 @@ public class State {
 		if (map[characters[1].pos] == Cell.NUMBER || map[characters[1].pos] == Cell.POWER) map[characters[1].pos] = Cell.BLANK;
 		if (map[characters[2].pos] == Cell.NUMBER || map[characters[2].pos] == Cell.POWER) map[characters[2].pos] = Cell.BLANK;
 		if (map[characters[3].pos] == Cell.NUMBER || map[characters[3].pos] == Cell.POWER) map[characters[3].pos] = Cell.BLANK;
+
+		boolean anyBomb = false;
+		for (int i = 0; i < bombList.length; ++i) {
+			Bomb b = bombList[i];
+			if (b.limitTime == 0) {
+				anyBomb = true;
+				if ((b.id & (1 << 0)) != 0) --characters[0].useBomb;
+				if ((b.id & (1 << 1)) != 0) --characters[1].useBomb;
+				if ((b.id & (1 << 2)) != 0) --characters[2].useBomb;
+				if ((b.id & (1 << 3)) != 0) --characters[3].useBomb;
+				bombList = remove(bombList, i--);
+				map[b.pos] = Cell.BLANK;
+			} else {
+				--b.limitTime;
+				map[b.pos] = Cell.BOMB;
+			}
+		}
+		if (anyBomb) {
+			for (int p = 0; p < Parameter.XY; ++p)
+				if (map[p] == Cell.SOFT_BLOCK && burstMap[p] == 0) map[p] = Cell.BLANK;
+			burstMap = null;
+		} else {
+			for (int p = 0; p < Parameter.XY; ++p)
+				if (burstMap[p] != BURST_MAP_INIT) --burstMap[p];
+		}
 
 		turn++;
 		if (turn >= 294 && (turn & 1) == 0) {
@@ -211,28 +238,6 @@ public class State {
 				}
 			}
 		}
-
-		for (int p = 0; p < Parameter.XY; ++p) {
-			if (map[p] == Cell.SOFT_BLOCK && burstMap[p] == 0) {
-				map[p] = Cell.BLANK;
-			}
-		}
-		for (int i = 0; i < bombList.length; ++i) {
-			Bomb b = bombList[i];
-			if (burstMap[b.pos] == 0) {
-				if ((b.id & (1 << 0)) != 0) --characters[0].useBomb;
-				if ((b.id & (1 << 1)) != 0) --characters[1].useBomb;
-				if ((b.id & (1 << 2)) != 0) --characters[2].useBomb;
-				if ((b.id & (1 << 3)) != 0) --characters[3].useBomb;
-				bombList = remove(bombList, i--);
-				map[b.pos] = Cell.BLANK;
-			} else {
-				map[b.pos] = Cell.BOMB;
-				--b.limitTime;
-			}
-		}
-		burstMap = null;
-		return false;
 	}
 
 	int[] calcBurstMap() {
@@ -284,21 +289,21 @@ public class State {
 		}
 	}
 
-	int calcValue() {
+	int value() {
 		Character a1 = characters[ID[Parameter.MY_ID][0]], a2 = characters[ID[Parameter.MY_ID][1]];
 		Character e1 = characters[ID[Parameter.ENEMY_ID][0]], e2 = characters[ID[Parameter.ENEMY_ID][1]];
-		return length[a1.pos][a2.pos] - length[e1.pos][e2.pos] - (a1.lastBomb + a2.lastBomb)
-				+ (a1.bomb + a1.fire + a2.bomb + a2.fire);
+		return length[a1.pos][a2.pos] - length[e1.pos][e2.pos] - (a1.lastBomb + a2.lastBomb) + (a1.bomb + a1.fire + a2.bomb + a2.fire);
 	}
 
 	boolean operations(Operation[] operations, int player_id) {
 		// 移動処理
 		for (int id : ID[player_id]) {
 			Operation o = operations[id & 1];
-			if (o.move == Move.NONE) continue;
-			Character c = characters[id];
-			c.pos += o.move.dir;
-			if (!isin(o.move.dir, c.pos) || map[c.pos].cantMove()) return false;
+			if (o.move != Move.NONE) {
+				Character c = characters[id];
+				c.pos += o.move.dir;
+				if (!isin(o.move.dir, c.pos) || map[c.pos].cantMove()) return false;
+			}
 		}
 
 		// 爆弾処理
@@ -340,10 +345,6 @@ public class State {
 					bombList = add(bombList, put);
 					map[pos] = Cell.PUT_BOMB;
 				}
-				++c.useBomb;
-				c.lastBomb = turn;
-				Arrays.sort(bombList);
-
 				{// 爆弾の有効性チェック
 					boolean notValid = enemyMap[pos] == 0;
 					Bomb que[] = new Bomb[bombList.length];
@@ -380,13 +381,25 @@ public class State {
 
 					if (notValid) return false;
 				}
+				++c.useBomb;
+				c.lastBomb = turn;
 			}
+			Arrays.sort(bombList);
 		}
 		return true;
 	}
 
-	int check() {
+	Result getResult() {
 		if (bombList.length > 0) {
+			if (anyDead()) {
+				int allyDead = (burstMap[characters[ID[Parameter.MY_ID][0]].pos] == 0 ? 1 : 0)
+						+ (burstMap[characters[ID[Parameter.MY_ID][1]].pos] == 0 ? 1 : 0);
+				int enemyDead = (burstMap[characters[ID[Parameter.ENEMY_ID][0]].pos] == 0 ? 1 : 0)
+						+ (burstMap[characters[ID[Parameter.ENEMY_ID][1]].pos] == 0 ? 1 : 0);
+				if (allyDead < enemyDead) return Result.Win;
+				else if (allyDead > enemyDead) return Result.Lose;
+				else return Result.Draw;
+			}
 			final int burstMemo[] = new int[Parameter.XY], blockMemo[] = new int[Parameter.XY];
 			for (int pos = 0; pos < Parameter.XY; ++pos) {
 				if (map[pos] == Cell.HARD_BLOCK) {
@@ -430,9 +443,8 @@ public class State {
 			class Inner {
 				int liveDFS(int pos, int depth) {
 					if (memo[depth][pos] != 0) return memo[depth][pos];
-					int bit = 1 << depth, mask = ~(bit - 1);
+					int bit = 1 << depth, mask = ~(bit - 1), res = depth;
 					if ((burstMemo[pos] & mask) == 0) return memo[depth][pos] = endDepth;
-					int res = depth;
 					if ((burstMemo[pos] & bit) == 0 && (res = Math.max(res, liveDFS(pos, depth + 1))) == endDepth) return memo[depth][pos] = res;
 					for (int next_pos : NEXT[pos]) {
 						if ((burstMemo[next_pos] & bit) == 0 && (blockMemo[next_pos] & bit) == 0
@@ -443,23 +455,25 @@ public class State {
 			}
 			Inner func = new Inner();
 			int minDeadTime = endDepth, deadTime[] = new int[Parameter.CHARACTER_NUM];
-			for (int id = 0; id < Parameter.CHARACTER_NUM; ++id) {
-				Character c = characters[id];
-				if ((burstMemo[c.pos] & 1) != 0) deadTime[id] = 0;
-				else deadTime[id] = func.liveDFS(c.pos, 1);
-				minDeadTime = Math.min(minDeadTime, deadTime[id]);
-			}
+			minDeadTime = Math.min(minDeadTime, deadTime[0] = func.liveDFS(characters[0].pos, 1));
+			minDeadTime = Math.min(minDeadTime, deadTime[1] = func.liveDFS(characters[1].pos, 1));
+			minDeadTime = Math.min(minDeadTime, deadTime[2] = func.liveDFS(characters[2].pos, 1));
+			minDeadTime = Math.min(minDeadTime, deadTime[3] = func.liveDFS(characters[3].pos, 1));
 			if (minDeadTime < endDepth) {
 				int allyDead = (deadTime[ID[Parameter.MY_ID][0]] == minDeadTime ? 1 : 0)
 						+ (deadTime[ID[Parameter.MY_ID][1]] == minDeadTime ? 1 : 0);
 				int enemyDead = (deadTime[ID[Parameter.ENEMY_ID][0]] == minDeadTime ? 1 : 0)
 						+ (deadTime[ID[Parameter.ENEMY_ID][1]] == minDeadTime ? 1 : 0);
-				if (allyDead == enemyDead) return 1;
-				else if (allyDead > enemyDead) return 3;
-				else if (allyDead < enemyDead) return -1;
+				if (allyDead < enemyDead) return Result.Win;
+				else if (allyDead > enemyDead) return Result.Lose;
+				else return Result.Draw;
 			}
 		}
-		return 2;
+		return Result.Continue;
+	}
+
+	enum Result {
+		Draw, Win, Lose, Continue;
 	}
 
 	private final Bomb getBomb(int pos) {

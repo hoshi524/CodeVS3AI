@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
 
+import codevs3.State.Result;
 import codevs3.TranspositionTable.Node;
 
 public class AI {
@@ -37,7 +38,7 @@ public class AI {
 
 	static final int MAX_VALUE = Integer.MAX_VALUE >> 10;
 	static final int MIN_VALUE = Integer.MIN_VALUE >> 10;
-	static int MAX_DEPTH = 5; // 奇数制約
+	static int MAX_DEPTH = 7; // 奇数制約
 	static int AiutiValue;
 
 	static final Operation[][] operationList;
@@ -74,6 +75,8 @@ public class AI {
 		operationList = list.toArray(new Operation[0][]);
 	}
 
+	// DebugDFS debug = new DebugDFS();
+
 	public String think(String input) {
 		for (int i = 0; i <= MAX_DEPTH; ++i)
 			table[i].delete();
@@ -96,6 +99,7 @@ public class AI {
 			sb.append(next.operations[i].toString()).append("\n");
 		}
 		Timer.print();
+		// debug.print();
 		return sb.toString();
 	}
 
@@ -136,7 +140,9 @@ public class AI {
 			for (Operation[] o : operationList) {
 				State tmp = new State(now);
 				if (tmp.operations(o, Parameter.MY_ID)) {
+					// debug.addNode(Arrays.deepToString(new Object[] { MAX_DEPTH - depth, o }), MAX_DEPTH - depth);
 					Next n = new Next(negamax(tmp, depth - 1, alpha, beta).value, o);
+					// debug.addNode(Arrays.deepToString(new Object[] { MAX_DEPTH - depth, o, n.value }), MAX_DEPTH - depth);
 					if (best.value < n.value) {
 						best = n;
 						if (best.value >= beta) break;
@@ -145,45 +151,26 @@ public class AI {
 				}
 			}
 		} else {
-			class Piar {
-				final int value;
-				final State s;
-				final Operation[] o;
-
-				Piar(int value, State s, Operation[] o) {
-					this.value = value;
-					this.s = s;
-					this.o = o;
-				}
-			}
-			Piar[] moves = new Piar[128];
-			int msize = 0;
 			for (Operation[] o : operationList) {
 				State tmp = new State(now);
 				if (tmp.operations(o, Parameter.ENEMY_ID)) {
-					int res = tmp.check();
-					int value = 0;
-					if (res == 2) value = tmp.calcValue();
-					else if (res == 1) value = tmp.calcValue() + AiutiValue;
-					else if (res == 3) value = tmp.calcValue() + (MIN_VALUE >> 1);
-					else if (res == -1) value = tmp.calcValue() + (MAX_VALUE >> 1);
-					if (depth == 0 || tmp.step()) {
+					// debug.addNode(Arrays.deepToString(new Object[] { MAX_DEPTH - depth, o, tmp.getResult() }), MAX_DEPTH - depth);
+					if (depth == 0 || tmp.anyDead()) {
+						Result res = tmp.getResult();
+						int value = 0;
+						if (res == Result.Continue) value = tmp.value();
+						else if (res == Result.Draw) value = tmp.value() + AiutiValue;
+						else if (res == Result.Win) value = tmp.value() + (MAX_VALUE >> 1);
+						else if (res == Result.Lose) value = tmp.value() + (MIN_VALUE >> 1);
 						best.value = Math.min(best.value, value);
 					} else {
-						moves[msize++] = new Piar(value, tmp, o);
-					}
-				}
-			}
-			if (msize > 0 && alpha < best.value) {
-				moves = Arrays.copyOf(moves, msize);
-				Arrays.sort(moves, (o1, o2) -> o1.value - o2.value);
-				beta = Math.min(beta, best.value);
-				for (Piar p : moves) {
-					Next n = new Next(negamax(p.s, depth - 1, alpha, beta).value, p.o);
-					if (best.value > n.value) {
-						best = n;
-						if (alpha >= best.value) break;
-						beta = Math.min(beta, best.value);
+						tmp.step();
+						Next n = new Next(negamax(tmp, depth - 1, alpha, beta).value, o);
+						if (best.value > n.value) {
+							best = n;
+							if (alpha >= best.value) break;
+							beta = Math.min(beta, best.value);
+						}
 					}
 				}
 			}
