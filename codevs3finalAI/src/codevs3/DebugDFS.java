@@ -36,6 +36,8 @@ public class DebugDFS {
 		try {
 			PrintWriter out = new PrintWriter(new File("debug.txt"));
 			dfs(out, root, 0);
+			out.flush();
+			out.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

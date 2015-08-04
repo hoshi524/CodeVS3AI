@@ -194,7 +194,7 @@ public class State {
 		boolean anyBomb = false;
 		for (int i = 0; i < bombList.length; ++i) {
 			Bomb b = bombList[i];
-			if (b.limitTime == 0) {
+			if (burstMap[b.pos] == 0) {
 				anyBomb = true;
 				if ((b.id & (1 << 0)) != 0) --characters[0].useBomb;
 				if ((b.id & (1 << 1)) != 0) --characters[1].useBomb;
@@ -212,8 +212,9 @@ public class State {
 				if (map[p] == Cell.SOFT_BLOCK && burstMap[p] == 0) map[p] = Cell.BLANK;
 			burstMap = null;
 		} else {
-			for (int p = 0; p < Parameter.XY; ++p)
+			for (int p = 0; p < Parameter.XY; ++p) {
 				if (burstMap[p] != BURST_MAP_INIT) --burstMap[p];
+			}
 		}
 
 		turn++;

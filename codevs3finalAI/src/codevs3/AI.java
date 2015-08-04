@@ -92,7 +92,7 @@ public class AI {
 				debug(test.value, test.operations);
 			}
 		}
-		System.err.println(String.format("%3d:%12d", state.turn, next.value));
+		debug(state.turn, next.value);
 
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < Parameter.PLAYER; ++i) {
