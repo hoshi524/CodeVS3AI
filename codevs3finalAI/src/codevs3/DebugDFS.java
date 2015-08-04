@@ -1,8 +1,6 @@
 package codevs3;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -36,7 +34,7 @@ public class DebugDFS {
 
 	void print() {
 		try {
-			PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(new File("debug.txt"))));
+			PrintWriter out = new PrintWriter(new File("debug.txt"));
 			dfs(out, root, 0);
 		} catch (IOException e) {
 			e.printStackTrace();

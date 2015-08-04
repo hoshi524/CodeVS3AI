@@ -1,5 +1,7 @@
 package codevs3;
 
+import codevs3.State.Cell;
+
 public class Hash {
 	private static final class XorShift {
 		int x = 123456789;
@@ -20,9 +22,9 @@ public class Hash {
 		}
 	}
 
-	public static final long[] hashMap = new long[Parameter.XY * 10];
-	public static final long[] hashBomb = new long[Parameter.XY * 15];
-	public static final long[] hashPlayer = new long[Parameter.XY * 4];
+	public static final long[] hashMap = new long[Parameter.XY * Cell.values().length];
+	public static final long[] hashBomb = new long[Parameter.XY * (State.BURST_MAP_INIT + 1)];
+	public static final long[] hashPlayer = new long[Parameter.XY * Parameter.CHARACTER_NUM];
 
 	static {
 		XorShift x = new XorShift();

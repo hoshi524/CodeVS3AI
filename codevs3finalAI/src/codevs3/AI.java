@@ -142,7 +142,6 @@ public class AI {
 				if (tmp.operations(o, Parameter.MY_ID)) {
 					// debug.addNode(Arrays.deepToString(new Object[] { MAX_DEPTH - depth, o }), MAX_DEPTH - depth);
 					Next n = new Next(negamax(tmp, depth - 1, alpha, beta).value, o);
-					// debug.addNode(Arrays.deepToString(new Object[] { MAX_DEPTH - depth, o, n.value }), MAX_DEPTH - depth);
 					if (best.value < n.value) {
 						best = n;
 						if (best.value >= beta) break;

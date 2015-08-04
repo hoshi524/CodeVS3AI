@@ -21,7 +21,7 @@ public class State {
 		}
 	}
 
-	private final static int BURST_MAP_INIT = 1 << 7;
+	final static int BURST_MAP_INIT = 1 << 4;
 	private final static int[] dirs = new int[] { -1, 1, -Parameter.X, Parameter.X };
 	private final static int[][] ID = { { 0, 1 }, { 2, 3 } };
 	private final static int[][] NEXT = new int[Parameter.XY][];
@@ -487,7 +487,7 @@ public class State {
 		long res = 0;
 		for (int pos = 0; pos < Parameter.XY; ++pos) {
 			res ^= Hash.hashMap[map[pos].ordinal() * Parameter.XY + pos];
-			res ^= Hash.hashBomb[Math.min(burstMap[pos], 10) * Parameter.XY + pos];
+			res ^= Hash.hashBomb[burstMap[pos] * Parameter.XY + pos];
 		}
 		for (int id = 0; id < Parameter.CHARACTER_NUM; ++id) {
 			res ^= Hash.hashPlayer[id * Parameter.XY + characters[id].pos];
