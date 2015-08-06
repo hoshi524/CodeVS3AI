@@ -38,7 +38,8 @@ public class AI {
 
 	static final int MAX_VALUE = Integer.MAX_VALUE >> 10;
 	static final int MIN_VALUE = Integer.MIN_VALUE >> 10;
-	static int MAX_DEPTH = 7; // 奇数制約
+	static final int INIT_MAX_DEPTH = 5;
+	static int MAX_DEPTH = INIT_MAX_DEPTH; // 奇数制約
 	static int AiutiValue;
 
 	static final Operation[][] operationList;
@@ -100,6 +101,7 @@ public class AI {
 		}
 		Timer.print();
 		// debug.print();
+		Counter.print();
 		return sb.toString();
 	}
 
@@ -137,9 +139,10 @@ public class AI {
 			memo = table[depth].create(key);
 		}
 		if (isMe) {
+			int enemyMap[] = now.getEnemyMap(Parameter.MY_ID);
 			for (Operation[] o : operationList) {
 				State tmp = new State(now);
-				if (tmp.operations(o, Parameter.MY_ID)) {
+				if (tmp.operations(o, Parameter.MY_ID, enemyMap)) {
 					// debug.addNode(Arrays.deepToString(new Object[] { MAX_DEPTH - depth, o }), MAX_DEPTH - depth);
 					Next n = new Next(negamax(tmp, depth - 1, alpha, beta).value, o);
 					if (best.value < n.value) {
@@ -150,9 +153,10 @@ public class AI {
 				}
 			}
 		} else {
+			int enemyMap[] = now.getEnemyMap(Parameter.ENEMY_ID);
 			for (Operation[] o : operationList) {
 				State tmp = new State(now);
-				if (tmp.operations(o, Parameter.ENEMY_ID)) {
+				if (tmp.operations(o, Parameter.ENEMY_ID, enemyMap)) {
 					// debug.addNode(Arrays.deepToString(new Object[] { MAX_DEPTH - depth, o, tmp.getResult() }), MAX_DEPTH - depth);
 					if (depth == 0 || tmp.anyDead()) {
 						Result res = tmp.getResult();
