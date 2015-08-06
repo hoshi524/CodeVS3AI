@@ -169,14 +169,16 @@ public class State {
 				}
 			}
 		}
+
+		// print();
 	}
 
-	boolean anyDead() {
+	final boolean anyDead() {
 		return burstMap[characters[0].pos] == 0 || burstMap[characters[1].pos] == 0 || burstMap[characters[2].pos] == 0
 				|| burstMap[characters[3].pos] == 0;
 	}
 
-	void step() {
+	final void step() {
 		Counter.add("step");
 		if (map[characters[0].pos] == Cell.NUMBER) ++characters[0].bomb;
 		else if (map[characters[0].pos] == Cell.POWER) ++characters[0].fire;
@@ -242,7 +244,7 @@ public class State {
 		}
 	}
 
-	int[] calcBurstMap() {
+	final int[] calcBurstMap() {
 		Counter.add("calcBurstMap");
 		if (burstMap != null) return burstMap;
 		burstMap = new int[Parameter.XY];
@@ -292,13 +294,21 @@ public class State {
 		}
 	}
 
-	int value() {
+	final int value() {
 		Character a1 = characters[ID[Parameter.MY_ID][0]], a2 = characters[ID[Parameter.MY_ID][1]];
 		Character e1 = characters[ID[Parameter.ENEMY_ID][0]], e2 = characters[ID[Parameter.ENEMY_ID][1]];
 		return length[a1.pos][a2.pos] - length[e1.pos][e2.pos] - (a1.lastBomb + a2.lastBomb) + (a1.bomb + a1.fire + a2.bomb + a2.fire);
 	}
 
-	int[] getEnemyMap(int player_id) {
+	final int lose() {
+		return value() + (turn << 10);
+	}
+
+	final int win() {
+		return value() - (turn << 10);
+	}
+
+	final int[] getEnemyMap(int player_id) {
 		Counter.add("getEnemyMap");
 		int enemyMap[] = new int[Parameter.XY], qi, qs, que[] = new int[Parameter.XY];
 		for (int id : ID[player_id == 0 ? 1 : 0]) {
@@ -320,7 +330,7 @@ public class State {
 		return enemyMap;
 	}
 
-	boolean operations(Operation[] operations, int player_id, int enemyMap[]) {
+	final boolean operations(Operation[] operations, int player_id, int enemyMap[]) {
 		Counter.add("operations");
 		{// 移動処理
 			Operation o = operations[0];
@@ -399,7 +409,7 @@ public class State {
 		return true;
 	}
 
-	Result getResult() {
+	final Result getResult() {
 		Counter.add("getResult");
 		if (bombList.length > 0) {
 			if (anyDead()) {
@@ -493,7 +503,7 @@ public class State {
 		throw new RuntimeException();
 	}
 
-	public long getHash() {
+	public final long getHash() {
 		Counter.add("getHash");
 		int burstMap[] = calcBurstMap();
 		long res = 0;
@@ -517,5 +527,22 @@ public class State {
 		T[] res = Arrays.copyOf(src, src.length - 1);
 		if (i < res.length) System.arraycopy(src, i + 1, res, i, res.length - i);
 		return res;
+	}
+
+	private final void print() {
+		char c[] = new char[0xff];
+		c[Cell.BLANK.ordinal()] = '.';
+		c[Cell.BOMB.ordinal()] = 'B';
+		c[Cell.HARD_BLOCK.ordinal()] = 'H';
+		c[Cell.SOFT_BLOCK.ordinal()] = 'S';
+		for (int y = 0; y < Parameter.Y; ++y) {
+			for (int x = 0; x < Parameter.X; ++x) {
+				int pos = y * Parameter.X + x;
+				boolean chara = characters[0].pos == pos || characters[1].pos == pos || characters[2].pos == pos
+						|| characters[3].pos == pos;
+				System.err.print(chara ? 'C' : c[map[pos].ordinal()]);
+			}
+			System.err.println();
+		}
 	}
 }

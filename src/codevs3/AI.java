@@ -163,8 +163,8 @@ public class AI {
 						int value = 0;
 						if (res == Result.Continue) value = tmp.value();
 						else if (res == Result.Draw) value = tmp.value() + AiutiValue;
-						else if (res == Result.Win) value = tmp.value() + (MAX_VALUE >> 1);
-						else if (res == Result.Lose) value = tmp.value() + (MIN_VALUE >> 1);
+						else if (res == Result.Win) value = tmp.win() + (MAX_VALUE >> 1);
+						else if (res == Result.Lose) value = tmp.lose() + (MIN_VALUE >> 1);
 						best.value = Math.min(best.value, value);
 					} else {
 						tmp.step();
