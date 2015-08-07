@@ -25,6 +25,7 @@ public class Hash {
 	public static final long[] hashMap = new long[Parameter.XY * Cell.values().length];
 	public static final long[] hashBomb = new long[Parameter.XY * (State.BURST_MAP_INIT + 1)];
 	public static final long[] hashPlayer = new long[Parameter.XY * Parameter.CHARACTER_NUM];
+	public static final long[] hashDepth = new long[AI.INIT_MAX_DEPTH + 1];
 
 	static {
 		XorShift x = new XorShift();
@@ -34,5 +35,7 @@ public class Hash {
 			hashBomb[i] = x.nextLong();
 		for (int i = 0; i < hashPlayer.length; ++i)
 			hashPlayer[i] = x.nextLong();
+		for (int i = 0; i < hashDepth.length; ++i)
+			hashDepth[i] = x.nextLong();
 	}
 }

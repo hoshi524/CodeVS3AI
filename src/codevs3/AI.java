@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.Scanner;
 
 import codevs3.State.Result;
-import codevs3.TranspositionTable.Node;
 
 public class AI {
 
@@ -79,14 +78,12 @@ public class AI {
 	// DebugDFS debug = new DebugDFS();
 
 	public String think(String input) {
-		for (int i = 0; i <= MAX_DEPTH; ++i)
-			table[i].delete();
+		table.clear();
 		State state = new State(input);
 		Next next = MTDF(state);
 		// Next next = negamax(state, MAX_DEPTH, MIN_VALUE, MAX_VALUE);
 		if (false) {
-			for (int i = 0; i <= MAX_DEPTH; ++i)
-				table[i].delete();
+			table.clear();
 			Next test = negamax(state, MAX_DEPTH, MIN_VALUE, MAX_VALUE);
 			if (test.value != next.value) {
 				debug(next.value, next.operations);
@@ -107,7 +104,8 @@ public class AI {
 
 	Next MTDF(State now) {
 		int lower = MIN_VALUE, upper = MAX_VALUE, bound = 0;
-		Next n = new Next(MIN_VALUE, operationList[0]);
+		Next n = new Next();
+		n.value = MIN_VALUE;
 		while (lower < upper) {
 			n = negamax(now, MAX_DEPTH, bound - 1, bound);
 			if (n.value < bound) upper = n.value;
@@ -118,41 +116,36 @@ public class AI {
 		return n;
 	}
 
-	TranspositionTable table[] = new TranspositionTable[MAX_DEPTH + 1];
-	{
-		for (int i = 0; i <= MAX_DEPTH; ++i) {
-			table[i] = new TranspositionTable();
-		}
-	}
+	TranspositionTable table = new TranspositionTable();
 
 	Next negamax(State now, int depth, int alpha, int beta) {
-		boolean isMe = depth % 2 == 1;
-		Next best = new Next(isMe ? MIN_VALUE : MAX_VALUE, operationList[0]);
-		long key = now.getHash();
-		Node memo = table[depth].get(key);
-		if (memo != null) {
-			if (beta <= memo.lower) return new Next(memo.lower, memo.next.operations);
-			if (memo.upper <= alpha || memo.upper == memo.lower) return new Next(memo.upper, memo.next.operations);
-			alpha = Math.max(alpha, memo.lower);
-			beta = Math.min(beta, memo.upper);
+		long key = now.getHash() ^ Hash.hashDepth[depth];
+		Next best = table.get(key);
+		if (best != null) {
+			if (beta <= best.lower || best.upper <= alpha || best.upper == best.lower) return best;
+			alpha = Math.max(alpha, best.lower);
+			beta = Math.min(beta, best.upper);
 		} else {
-			memo = table[depth].create(key);
+			best = table.create(key);
 		}
-		if (isMe) {
+		if ((depth & 1) == 1) {
+			best.value = MIN_VALUE;
 			int enemyMap[] = now.getEnemyMap(Parameter.MY_ID);
 			for (Operation[] o : operationList) {
 				State tmp = new State(now);
 				if (tmp.operations(o, Parameter.MY_ID, enemyMap)) {
 					// debug.addNode(Arrays.deepToString(new Object[] { MAX_DEPTH - depth, o }), MAX_DEPTH - depth);
-					Next n = new Next(negamax(tmp, depth - 1, alpha, beta).value, o);
-					if (best.value < n.value) {
-						best = n;
+					int value = negamax(tmp, depth - 1, alpha, beta).value;
+					if (best.value < value) {
+						best.value = value;
+						best.operations = o;
 						if (best.value >= beta) break;
 						alpha = Math.max(alpha, best.value);
 					}
 				}
 			}
 		} else {
+			best.value = MAX_VALUE;
 			int enemyMap[] = now.getEnemyMap(Parameter.ENEMY_ID);
 			for (Operation[] o : operationList) {
 				State tmp = new State(now);
@@ -168,9 +161,10 @@ public class AI {
 						best.value = Math.min(best.value, value);
 					} else {
 						tmp.step();
-						Next n = new Next(negamax(tmp, depth - 1, alpha, beta).value, o);
-						if (best.value > n.value) {
-							best = n;
+						int value = negamax(tmp, depth - 1, alpha, beta).value;
+						if (best.value > value) {
+							best.value = value;
+							best.operations = o;
 							if (alpha >= best.value) break;
 							beta = Math.min(beta, best.value);
 						}
@@ -178,10 +172,9 @@ public class AI {
 				}
 			}
 		}
-		memo.next = best;
-		if (best.value <= alpha) memo.upper = best.value;
-		else if (best.value >= beta) memo.lower = best.value;
-		else memo.lower = memo.upper = best.value;
+		if (best.value <= alpha) best.upper = best.value;
+		else if (best.value >= beta) best.lower = best.value;
+		else best.lower = best.upper = best.value;
 		return best;
 	}
 

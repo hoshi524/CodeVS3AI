@@ -1,11 +1,17 @@
 package codevs3;
 
-public class Next {
-	public int value;
-	public Operation operations[];
 
-	public Next(int value, Operation operations[]) {
-		this.value = value;
-		this.operations = operations;
+public class Next {
+	int value, lower, upper;;
+	Operation operations[];
+	long key;
+	Next n;
+
+	void init(long key, Next n) {
+		operations = AI.operationList[0];
+		lower = AI.MIN_VALUE;
+		upper = AI.MAX_VALUE;
+		this.key = key;
+		this.n = n;
 	}
 }
