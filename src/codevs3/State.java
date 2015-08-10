@@ -142,7 +142,7 @@ public class State {
 
 		sc.close();
 
-		if (turn >= 300 && (turn & 1) == 0) {
+		if (turn >= 299 && (turn & 1) == 1) {
 			int dy[] = new int[] { 0, 1, 0, -1 };
 			int dx[] = new int[] { 1, 0, -1, 0 };
 			int x = -1, y = 0, i = 0, j = 1;
