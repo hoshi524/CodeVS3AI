@@ -141,6 +141,28 @@ public class State {
 		}
 
 		sc.close();
+
+		if (turn >= 300 && (turn & 1) == 0) {
+			int dy[] = new int[] { 0, 1, 0, -1 };
+			int dx[] = new int[] { 1, 0, -1, 0 };
+			int x = -1, y = 0, i = 0, j = 1;
+			while (true) {
+				x += dx[i];
+				y += dy[i];
+				int pos = y * Parameter.X + x;
+				if (map[pos] != Cell.HARD_BLOCK) {
+					map[pos] = Cell.HARD_BLOCK;
+					break;
+				}
+				if (i == 0 && x == Parameter.X - j) i = 1;
+				else if (i == 1 && y == Parameter.Y - j) i = 2;
+				else if (i == 2 && x == j - 1) i = 3;
+				else if (i == 3 && y == j) {
+					i = 0;
+					j++;
+				}
+			}
+		}
 		// print();
 	}
 
