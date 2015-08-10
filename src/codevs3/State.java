@@ -56,7 +56,7 @@ public class State {
 	}
 
 	State(State s) {
-		this.turn = s.turn;
+		turn = s.turn;
 		map = Arrays.copyOf(s.map, s.map.length);
 		burstMap = Arrays.copyOf(s.burstMap, s.burstMap.length);
 
@@ -357,10 +357,9 @@ public class State {
 				int pos = c.pos, fire = c.fire;
 				Bomb put;
 				if (map[pos].isBomb()) {
-					Bomb b = getBomb(pos);
-					if (b.fire >= fire && burstMap[pos] <= o.burstTime) return false;
-					b.merge(id, o.burstTime, fire);
-					put = b;
+					put = getBomb(pos);
+					if (put.fire >= fire && burstMap[pos] <= o.burstTime) return false;
+					put.merge(id, o.burstTime, fire);
 				} else {
 					put = new Bomb(id, pos, o.burstTime, fire);
 					bombList = add(bombList, put);
@@ -377,9 +376,7 @@ public class State {
 					while (qi < qs) {
 						Bomb bb = que[qi++];
 						for (int d : dirs) {
-							int next_pos = bb.pos;
-							for (int j = 0; j < bb.fire; ++j) {
-								next_pos += d;
+							for (int j = 0, next_pos = bb.pos + d; j < bb.fire; ++j, next_pos += d) {
 								if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
 								int burst = burstMap[next_pos];
 								if (burstMap[next_pos] > limitTime) {
@@ -529,6 +526,7 @@ public class State {
 		return res;
 	}
 
+	@SuppressWarnings("unused")
 	private final void print() {
 		char c[] = new char[0xff];
 		c[Cell.BLANK.ordinal()] = '.';
