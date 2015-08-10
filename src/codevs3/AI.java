@@ -1,6 +1,5 @@
 package codevs3;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
 
@@ -35,13 +34,12 @@ public class AI {
 		}
 	}
 
+	private final static int[][] ID = { { 0, 1 }, { 2, 3 } };
 	static final int MAX_VALUE = Integer.MAX_VALUE >> 10;
 	static final int MIN_VALUE = Integer.MIN_VALUE >> 10;
 	static final int INIT_MAX_DEPTH = 5;
 	static int MAX_DEPTH = INIT_MAX_DEPTH; // 奇数制約
 	static int AiutiValue;
-
-	static final Operation[][] operationList;
 
 	// 何故か順番に依存してて変更できない
 	final static Operation operations[] = {//
@@ -56,24 +54,6 @@ public class AI {
 			new Operation(Move.UP, true, 5), //		8
 			new Operation(Move.NONE, true, 5), //	9
 	};
-
-	static {
-		class innerfunc {
-			void operation_dfs(int n, Operation[] now, ArrayList<Operation[]> res) {
-				if (Parameter.PLAYER == n) {
-					res.add(Arrays.copyOf(now, now.length));
-				} else {
-					for (Operation operation : operations) {
-						now[n] = operation;
-						operation_dfs(n + 1, now, res);
-					}
-				}
-			}
-		}
-		ArrayList<Operation[]> list = new ArrayList<>();
-		new innerfunc().operation_dfs(0, new Operation[Parameter.PLAYER], list);
-		operationList = list.toArray(new Operation[0][]);
-	}
 
 	// DebugDFS debug = new DebugDFS();
 
@@ -128,45 +108,58 @@ public class AI {
 		} else {
 			best = table.create(key);
 		}
+		boolean ok[][] = new boolean[2][operations.length];
+		Arrays.fill(ok[0], true);
+		Arrays.fill(ok[1], true);
 		if ((depth & 1) == 1) {
 			best.value = MIN_VALUE;
 			int enemyMap[] = now.getEnemyMap(Parameter.MY_ID);
-			for (Operation[] o : operationList) {
-				State tmp = new State(now);
-				if (tmp.operations(o, Parameter.MY_ID, enemyMap)) {
-					// debug.addNode(Arrays.deepToString(new Object[] { MAX_DEPTH - depth, o }), MAX_DEPTH - depth);
-					int value = negamax(tmp, depth - 1, alpha, beta).value;
-					if (best.value < value) {
-						best.value = value;
-						best.operations = o;
-						if (best.value >= beta) break;
-						alpha = Math.max(alpha, best.value);
+			for (int o0 = 0; o0 < operations.length; ++o0) {
+				for (int o1 = 0; o1 < operations.length; ++o1) {
+					if (ok[0][o0] && ok[1][o1]) {
+						State tmp = new State(now);
+						if ((ok[0][o0] = tmp.operations(operations[o0], ID[Parameter.MY_ID][0], enemyMap))
+								&& (ok[1][o1] = tmp.operations(operations[o1], ID[Parameter.MY_ID][1], enemyMap))) {
+							// debug.addNode(Arrays.deepToString(new Object[] { MAX_DEPTH - depth, o }), MAX_DEPTH - depth);
+							int value = negamax(tmp, depth - 1, alpha, beta).value;
+							if (best.value < value) {
+								best.value = value;
+								best.operations = new Operation[] { operations[o0], operations[o1] };
+								if (best.value >= beta) break;
+								alpha = Math.max(alpha, best.value);
+							}
+						}
 					}
 				}
 			}
 		} else {
 			best.value = MAX_VALUE;
 			int enemyMap[] = now.getEnemyMap(Parameter.ENEMY_ID);
-			for (Operation[] o : operationList) {
-				State tmp = new State(now);
-				if (tmp.operations(o, Parameter.ENEMY_ID, enemyMap)) {
-					// debug.addNode(Arrays.deepToString(new Object[] { MAX_DEPTH - depth, o, tmp.getResult() }), MAX_DEPTH - depth);
-					if (depth == 0 || tmp.anyDead()) {
-						Result res = tmp.getResult();
-						int value = 0;
-						if (res == Result.Continue) value = tmp.value();
-						else if (res == Result.Draw) value = tmp.value() + AiutiValue;
-						else if (res == Result.Win) value = tmp.win() + (MAX_VALUE >> 1);
-						else if (res == Result.Lose) value = tmp.lose() + (MIN_VALUE >> 1);
-						best.value = Math.min(best.value, value);
-					} else {
-						tmp.step();
-						int value = negamax(tmp, depth - 1, alpha, beta).value;
-						if (best.value > value) {
-							best.value = value;
-							best.operations = o;
-							if (alpha >= best.value) break;
-							beta = Math.min(beta, best.value);
+			for (int o0 = 0; o0 < operations.length; ++o0) {
+				for (int o1 = 0; o1 < operations.length; ++o1) {
+					if (ok[0][o0] && ok[1][o1]) {
+						State tmp = new State(now);
+						if ((ok[0][o0] = tmp.operations(operations[o0], ID[Parameter.ENEMY_ID][0], enemyMap))
+								&& (ok[1][o1] = tmp.operations(operations[o1], ID[Parameter.ENEMY_ID][1], enemyMap))) {
+							// debug.addNode(Arrays.deepToString(new Object[] { MAX_DEPTH - depth, o, tmp.getResult() }), MAX_DEPTH - depth);
+							if (depth == 0 || tmp.anyDead()) {
+								Result res = tmp.getResult();
+								int value = 0;
+								if (res == Result.Continue) value = tmp.value();
+								else if (res == Result.Draw) value = tmp.value() + AiutiValue;
+								else if (res == Result.Win) value = tmp.win() + (MAX_VALUE >> 1);
+								else if (res == Result.Lose) value = tmp.lose() + (MIN_VALUE >> 1);
+								best.value = Math.min(best.value, value);
+							} else {
+								tmp.step();
+								int value = negamax(tmp, depth - 1, alpha, beta).value;
+								if (best.value > value) {
+									best.value = value;
+									best.operations = new Operation[] { operations[o0], operations[o1] };
+									if (alpha >= best.value) break;
+									beta = Math.min(beta, best.value);
+								}
+							}
 						}
 					}
 				}

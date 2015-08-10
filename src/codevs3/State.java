@@ -330,78 +330,66 @@ public class State {
 		return enemyMap;
 	}
 
-	final boolean operations(Operation[] operations, int player_id, int enemyMap[]) {
+	final boolean operations(Operation o, int cid, int enemyMap[]) {
 		Counter.add("operations");
+		Character c = characters[cid];
 		{// 移動処理
-			Operation o = operations[0];
 			if (o.move != Move.NONE) {
-				Character c = characters[ID[player_id][0]];
-				c.pos += o.move.dir;
-				if (!isin(o.move.dir, c.pos) || map[c.pos].cantMove()) return false;
-			}
-			o = operations[1];
-			if (o.move != Move.NONE) {
-				Character c = characters[ID[player_id][1]];
 				c.pos += o.move.dir;
 				if (!isin(o.move.dir, c.pos) || map[c.pos].cantMove()) return false;
 			}
 		}
 
 		// 爆弾処理
-		if (operations[0].magic || operations[1].magic) {
-			for (int id : ID[player_id]) {
-				Operation o = operations[id & 1];
-				if (!o.magic) continue;
-				Character c = characters[id];
-				if (c.useBomb >= c.bomb) return false;
-				int pos = c.pos, fire = c.fire;
-				Bomb put;
-				if (map[pos].isBomb()) {
-					put = getBomb(pos);
-					if (put.fire >= fire && burstMap[pos] <= o.burstTime) return false;
-					put.merge(id, o.burstTime, fire);
-				} else {
-					put = new Bomb(id, pos, o.burstTime, fire);
-					bombList = add(bombList, put);
-					map[pos] = Cell.PUT_BOMB;
-				}
-				{// 爆弾の有効性チェック
-					boolean notValid = enemyMap[pos] == 0;
-					Bomb que[] = new Bomb[bombList.length];
-					que[0] = put;
-					boolean used[] = new boolean[Parameter.XY];
-					used[pos] = true;
-					int qi = 0, qs = 1, limitTime = Math.min(put.limitTime, burstMap[pos]);
-					burstMap[pos] = limitTime;
-					while (qi < qs) {
-						Bomb bb = que[qi++];
-						for (int d : dirs) {
-							for (int j = 0, next_pos = bb.pos + d; j < bb.fire; ++j, next_pos += d) {
-								if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
-								int burst = burstMap[next_pos];
-								if (burstMap[next_pos] > limitTime) {
-									burstMap[next_pos] = limitTime;
-									notValid &= enemyMap[next_pos] == 0;
-									if (map[next_pos].isBomb() && !used[next_pos]) {
-										used[next_pos] = true;
-										Bomb b = getBomb(next_pos);
-										que[qs++] = b;
-										if (b.fire + j + 1 >= bb.fire) break;
-									}
+		if (o.magic) {
+			if (c.useBomb >= c.bomb) return false;
+			int pos = c.pos, fire = c.fire;
+			Bomb put;
+			if (map[pos].isBomb()) {
+				put = getBomb(pos);
+				if (put.fire >= fire && burstMap[pos] <= o.burstTime) return false;
+				put.merge(cid, o.burstTime, fire);
+			} else {
+				put = new Bomb(cid, pos, o.burstTime, fire);
+				bombList = add(bombList, put);
+				map[pos] = Cell.PUT_BOMB;
+			}
+			{// 爆弾の有効性チェック
+				boolean notValid = enemyMap[pos] == 0;
+				Bomb que[] = new Bomb[bombList.length];
+				que[0] = put;
+				boolean used[] = new boolean[Parameter.XY];
+				used[pos] = true;
+				int qi = 0, qs = 1, limitTime = Math.min(put.limitTime, burstMap[pos]);
+				burstMap[pos] = limitTime;
+				while (qi < qs) {
+					Bomb bb = que[qi++];
+					for (int d : dirs) {
+						for (int j = 0, next_pos = bb.pos + d; j < bb.fire; ++j, next_pos += d) {
+							if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
+							int burst = burstMap[next_pos];
+							if (burstMap[next_pos] > limitTime) {
+								burstMap[next_pos] = limitTime;
+								notValid &= enemyMap[next_pos] == 0;
+								if (map[next_pos].isBomb() && !used[next_pos]) {
+									used[next_pos] = true;
+									Bomb b = getBomb(next_pos);
+									que[qs++] = b;
+									if (b.fire + j + 1 >= bb.fire) break;
 								}
-								if (map[next_pos] == Cell.SOFT_BLOCK) {
-									notValid &= burst != BURST_MAP_INIT;
-									break;
-								}
+							}
+							if (map[next_pos] == Cell.SOFT_BLOCK) {
+								notValid &= burst != BURST_MAP_INIT;
+								break;
 							}
 						}
 					}
-					if (notValid) return false;
 				}
-				++c.useBomb;
-				c.lastBomb = turn;
+				if (notValid) return false;
 			}
-			Arrays.sort(bombList);
+			++c.useBomb;
+			c.lastBomb = turn;
+			// Arrays.sort(bombList);
 		}
 		return true;
 	}
