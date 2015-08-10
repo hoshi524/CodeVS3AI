@@ -22,8 +22,8 @@ public class State {
 	}
 
 	final static int BURST_MAP_INIT = 1 << 4;
+	final static int[][] ID = { { 0, 1 }, { 2, 3 } };
 	private final static int[] dirs = new int[] { -1, 1, -Parameter.X, Parameter.X };
-	private final static int[][] ID = { { 0, 1 }, { 2, 3 } };
 	private final static int[][] NEXT = new int[Parameter.XY][];
 
 	private final static boolean isHardBlock(int p) {
@@ -48,7 +48,7 @@ public class State {
 	private Cell map[] = null;
 	private Character characters[] = new Character[Parameter.CHARACTER_NUM];
 	private int burstMap[] = null;
-	private Bomb[] bombList = null; // sort制約
+	Bomb[] bombList = null; // sort制約
 
 	private static final boolean isin(int dir, int next) {
 		int x = next % Parameter.X;
@@ -71,105 +71,76 @@ public class State {
 	}
 
 	State(String str) {
-		{// Input
-			Scanner sc = new Scanner(str);
-			{
-				int time = sc.nextInt(); // time
-				// 時間がある時は相打ちを狙わない、時間がない時は積極的に相打ちを狙う
-				AI.AiutiValue = time > 200000 ? AI.MIN_VALUE >> 2 : AI.MAX_VALUE >> 2;
-				// どうしても時間が切れるので時間が無くなったらdepthを減らす
-				AI.MAX_DEPTH = time > 100000 ? AI.INIT_MAX_DEPTH : AI.INIT_MAX_DEPTH - 2; // 奇数制約
-			}
-			turn = sc.nextInt(); // turn
-			sc.nextInt(); // max_turn
-			Parameter.setMyID(sc.nextInt());
-			sc.nextInt(); // Y
-			sc.nextInt(); // X
-
-			map = new Cell[Parameter.XY];
-			sc.next();
-			for (int y = 0; y < Parameter.Y; ++y) {
-				String line = sc.next();
-				for (int x = 0; x < Parameter.X; ++x) {
-					switch (line.charAt(x + 1)) {
-					case '#':
-						map[x + y * Parameter.X] = Cell.HARD_BLOCK;
-						break;
-					case '+':
-						map[x + y * Parameter.X] = Cell.SOFT_BLOCK;
-						break;
-					case '@':
-					case '.':
-						map[x + y * Parameter.X] = Cell.BLANK;
-						break;
-					}
-				}
-			}
-			sc.next();
-			int characters_num = sc.nextInt();
-			for (int i = 0; i < characters_num; ++i) {
-				int player_id = sc.nextInt();
-				int id = sc.nextInt();
-				int pos = (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1);
-				int fire = sc.nextInt();
-				int bomb = sc.nextInt();
-				characters[i] = new Character(pos, fire, bomb);
-			}
-
-			bombList = new Bomb[0];
-			for (int i = 0, bomb_num = sc.nextInt(); i < bomb_num; ++i) {
-				int id = sc.nextInt();
-				int pos = (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1);
-				int limitTime = sc.nextInt();
-				int fire = sc.nextInt();
-				if (map[pos].isBomb()) {
-					getBomb(pos).merge(id, limitTime, fire);
-				} else {
-					bombList = add(bombList, new Bomb(id, pos, limitTime, fire));
-					// characters[id].lastBomb = turn;
-					++characters[id].useBomb;
-					map[pos] = Cell.BOMB;
-				}
-			}
-			Arrays.sort(bombList);
-
-			int item_num = sc.nextInt();
-			for (int i = 0; i < item_num; ++i) {
-				String item_type = sc.next();
-				int pos = (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1);
-				if (item_type.equals("NUMBER_UP")) map[pos] = Cell.NUMBER;
-				if (item_type.equals("POWER_UP")) map[pos] = Cell.POWER;
-			}
-
-			sc.close();
+		Scanner sc = new Scanner(str);
+		{
+			int time = sc.nextInt(); // time
+			// 時間がある時は相打ちを狙わない、時間がない時は積極的に相打ちを狙う
+			AI.AiutiValue = time > 200000 ? AI.MIN_VALUE >> 2 : AI.MAX_VALUE >> 2;
+			// どうしても時間が切れるので時間が無くなったらdepthを減らす
+			AI.MAX_DEPTH = time > 100000 ? AI.INIT_MAX_DEPTH : AI.INIT_MAX_DEPTH - 2; // 奇数制約
 		}
+		turn = sc.nextInt(); // turn
+		sc.nextInt(); // max_turn
+		Parameter.setMyID(sc.nextInt());
+		sc.nextInt(); // Y
+		sc.nextInt(); // X
 
-		if (turn >= 294) {
-			Cell tmpMap[] = new Cell[Parameter.XY];
-			System.arraycopy(map, 0, tmpMap, 0, Parameter.XY);
-			for (int q = 0; q < 3; q++) {
-				int dy[] = new int[] { 0, 1, 0, -1 };
-				int dx[] = new int[] { 1, 0, -1, 0 };
-				int x = -1, y = 0, i = 0, j = 1;
-				while (true) {
-					x += dx[i];
-					y += dy[i];
-					int pos = y * Parameter.X + x;
-					if (tmpMap[pos] != Cell.HARD_BLOCK) {
-						tmpMap[pos] = Cell.HARD_BLOCK;
-						break;
-					}
-					if (i == 0 && x == Parameter.X - j) i = 1;
-					else if (i == 1 && y == Parameter.Y - j) i = 2;
-					else if (i == 2 && x == j - 1) i = 3;
-					else if (i == 3 && y == j) {
-						i = 0;
-						j++;
-					}
+		map = new Cell[Parameter.XY];
+		sc.next();
+		for (int y = 0; y < Parameter.Y; ++y) {
+			String line = sc.next();
+			for (int x = 0; x < Parameter.X; ++x) {
+				switch (line.charAt(x + 1)) {
+				case '#':
+					map[x + y * Parameter.X] = Cell.HARD_BLOCK;
+					break;
+				case '+':
+					map[x + y * Parameter.X] = Cell.SOFT_BLOCK;
+					break;
+				case '@':
+				case '.':
+					map[x + y * Parameter.X] = Cell.BLANK;
+					break;
 				}
 			}
 		}
+		sc.next();
+		int characters_num = sc.nextInt();
+		for (int i = 0; i < characters_num; ++i) {
+			int player_id = sc.nextInt();
+			int id = sc.nextInt();
+			int pos = (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1);
+			int fire = sc.nextInt();
+			int bomb = sc.nextInt();
+			characters[i] = new Character(pos, fire, bomb);
+		}
 
+		bombList = new Bomb[0];
+		for (int i = 0, bomb_num = sc.nextInt(); i < bomb_num; ++i) {
+			int id = sc.nextInt();
+			int pos = (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1);
+			int limitTime = sc.nextInt();
+			int fire = sc.nextInt();
+			if (map[pos].isBomb()) {
+				getBomb(pos).merge(id, limitTime, fire);
+			} else {
+				bombList = add(bombList, new Bomb(id, pos, limitTime, fire));
+				// characters[id].lastBomb = turn;
+				++characters[id].useBomb;
+				map[pos] = Cell.BOMB;
+			}
+		}
+		Arrays.sort(bombList);
+
+		int item_num = sc.nextInt();
+		for (int i = 0; i < item_num; ++i) {
+			String item_type = sc.next();
+			int pos = (sc.nextInt() - 1) * Parameter.X + (sc.nextInt() - 1);
+			if (item_type.equals("NUMBER_UP")) map[pos] = Cell.NUMBER;
+			if (item_type.equals("POWER_UP")) map[pos] = Cell.POWER;
+		}
+
+		sc.close();
 		// print();
 	}
 
@@ -180,6 +151,7 @@ public class State {
 
 	final void step() {
 		Counter.add("step");
+
 		if (map[characters[0].pos] == Cell.NUMBER) ++characters[0].bomb;
 		else if (map[characters[0].pos] == Cell.POWER) ++characters[0].fire;
 		if (map[characters[1].pos] == Cell.NUMBER) ++characters[1].bomb;
@@ -221,7 +193,7 @@ public class State {
 		}
 
 		turn++;
-		if (turn >= 294 && (turn & 1) == 0) {
+		if (turn >= 299 && (turn & 1) == 1) {
 			int dy[] = new int[] { 0, 1, 0, -1 };
 			int dx[] = new int[] { 1, 0, -1, 0 };
 			int x = -1, y = 0, i = 0, j = 1;
@@ -336,18 +308,18 @@ public class State {
 		{// 移動処理
 			if (o.move != Move.NONE) {
 				c.pos += o.move.dir;
-				if (!isin(o.move.dir, c.pos) || map[c.pos].cantMove()) return false;
-			}
+				if (!isin(o.move.dir, c.pos) || map[c.pos].cantMove()) return true;
+			} else if (map[c.pos] == Cell.HARD_BLOCK) return true;
 		}
 
 		// 爆弾処理
 		if (o.magic) {
-			if (c.useBomb >= c.bomb) return false;
+			if (c.useBomb >= c.bomb) return true;
 			int pos = c.pos, fire = c.fire;
 			Bomb put;
 			if (map[pos].isBomb()) {
 				put = getBomb(pos);
-				if (put.fire >= fire && burstMap[pos] <= o.burstTime) return false;
+				if (put.fire >= fire && burstMap[pos] <= o.burstTime) return true;
 				put.merge(cid, o.burstTime, fire);
 			} else {
 				put = new Bomb(cid, pos, o.burstTime, fire);
@@ -385,13 +357,12 @@ public class State {
 						}
 					}
 				}
-				if (notValid) return false;
+				if (notValid) return true;
 			}
 			++c.useBomb;
 			c.lastBomb = turn;
-			// Arrays.sort(bombList);
 		}
-		return true;
+		return false;
 	}
 
 	final Result getResult() {
