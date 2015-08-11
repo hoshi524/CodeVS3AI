@@ -131,14 +131,17 @@ public class AI {
 		if ((depth & 1) == 1) {
 			best.value = MIN_VALUE;
 			int enemyMap[] = now.getEnemyMap(Parameter.MY_ID);
+			for (int i = 0; i < operations.length; ++i) {
+				bad[0][i] = new State(now).operations(operations[i], State.ID[Parameter.MY_ID][0], enemyMap);
+				bad[1][i] = new State(now).operations(operations[i], State.ID[Parameter.MY_ID][1], enemyMap);
+			}
 			for (int i = 0; i < operationList.length; ++i) {
 				int a = i / operations.length, b = i % operations.length;
 				if (bad[0][a] || bad[1][b]) continue;
 				Operation o[] = operationList[i];
 				State tmp = new State(now);
-				if ((bad[0][a] = tmp.operations(o[0], State.ID[Parameter.MY_ID][0], enemyMap))
-						|| (bad[1][b] = tmp.operations(o[1], State.ID[Parameter.MY_ID][1], enemyMap))) continue;
-				// debug.addNode(Arrays.deepToString(new Object[] { MAX_DEPTH - depth, o }), MAX_DEPTH - depth);
+				tmp.operations(o[0], State.ID[Parameter.MY_ID][0], enemyMap);
+				tmp.operations(o[1], State.ID[Parameter.MY_ID][1], enemyMap);
 				int value = negamax(tmp, depth - 1, alpha, beta).value;
 				if (best.value < value) {
 					best.value = value;
@@ -150,15 +153,18 @@ public class AI {
 		} else {
 			best.value = MAX_VALUE;
 			int enemyMap[] = now.getEnemyMap(Parameter.ENEMY_ID);
+			for (int i = 0; i < operations.length; ++i) {
+				bad[0][i] = new State(now).operations(operations[i], State.ID[Parameter.ENEMY_ID][0], enemyMap);
+				bad[1][i] = new State(now).operations(operations[i], State.ID[Parameter.ENEMY_ID][1], enemyMap);
+			}
 			for (int i = 0; i < operationList.length; ++i) {
 				int a = i / operations.length, b = i % operations.length;
 				if (bad[0][a] || bad[1][b]) continue;
 				Operation o[] = operationList[i];
 				State tmp = new State(now);
-				if ((bad[0][a] = tmp.operations(o[0], State.ID[Parameter.ENEMY_ID][0], enemyMap))
-						|| (bad[1][b] = tmp.operations(o[1], State.ID[Parameter.ENEMY_ID][1], enemyMap))) continue;
+				tmp.operations(o[0], State.ID[Parameter.ENEMY_ID][0], enemyMap);
+				tmp.operations(o[1], State.ID[Parameter.ENEMY_ID][1], enemyMap);
 				Arrays.sort(tmp.bombList);
-				// debug.addNode(Arrays.deepToString(new Object[] { MAX_DEPTH - depth, o, tmp.getResult() }), MAX_DEPTH - depth);
 				int value;
 				if (depth == 0 || tmp.anyDead()) {
 					Result res = tmp.getResult();
