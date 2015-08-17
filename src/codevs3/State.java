@@ -23,7 +23,7 @@ public class State {
 
 	final static int BURST_MAP_INIT = 1 << 4;
 	final static int[][] ID = { { 0, 1 }, { 2, 3 } };
-	private final static int[] dirs = new int[] { -1, 1, -Parameter.X, Parameter.X };
+	private final static Move[] moves = { Move.DOWN, Move.LEFT, Move.RIGHT, Move.UP };
 	private final static int[][] NEXT = new int[Parameter.XY][];
 
 	private final static boolean isHardBlock(int p) {
@@ -34,10 +34,11 @@ public class State {
 	static {
 		for (int i = 0; i < NEXT.length; ++i) {
 			int n[] = new int[0];
-			for (int d : dirs) {
-				if (isin(d, i + d) && !isHardBlock(i + d)) {
+			for (Move m : moves) {
+				int next = i + m.dir;
+				if (m.check.after(next) && !isHardBlock(next)) {
 					n = Arrays.copyOf(n, n.length + 1);
-					n[n.length - 1] = i + d;
+					n[n.length - 1] = next;
 				}
 			}
 			NEXT[i] = n;
@@ -50,12 +51,8 @@ public class State {
 	private int burstMap[] = null;
 	Bomb[] bombList = null; // sort制約
 
-	private static final boolean isin(int dir, int next) {
-		int x = next % Parameter.X;
-		return 0 <= next && next < Parameter.XY && (x != 0 || dir != 1) && (x + 1 != Parameter.X || dir != -1);
-	}
-
 	State(State s) {
+		Counter.add("State copy");
 		turn = s.turn;
 		map = Arrays.copyOf(s.map, s.map.length);
 		burstMap = Arrays.copyOf(s.burstMap, s.burstMap.length);
@@ -254,11 +251,11 @@ public class State {
 			while (qi < qs) {
 				Bomb bb = que[qi++];
 				burstMap[bb.pos] = Math.min(burstMap[bb.pos], limitTime);
-				for (int d : dirs) {
+				for (Move m : moves) {
 					int next_pos = bb.pos;
 					for (int j = 0; j < bb.fire; ++j) {
-						next_pos += d;
-						if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
+						next_pos += m.dir;
+						if (!m.check.after(next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
 						burstMap[next_pos] = Math.min(burstMap[next_pos], limitTime);
 						if (map[next_pos] == Cell.SOFT_BLOCK) break;
 						else if (map[next_pos].isBomb() && !used[next_pos]) {
@@ -330,7 +327,7 @@ public class State {
 		{// 移動処理
 			if (o.move != Move.NONE) {
 				c.pos += o.move.dir;
-				if (!isin(o.move.dir, c.pos) || map[c.pos].cantMove()) return true;
+				if (!o.move.check.after(c.pos) || map[c.pos].cantMove()) return true;
 			} else if (map[c.pos] == Cell.HARD_BLOCK) return true;
 		}
 
@@ -358,9 +355,9 @@ public class State {
 				burstMap[pos] = limitTime;
 				while (qi < qs) {
 					Bomb bb = que[qi++];
-					for (int d : dirs) {
-						for (int j = 0, next_pos = bb.pos + d; j < bb.fire; ++j, next_pos += d) {
-							if (!isin(d, next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
+					for (Move m : moves) {
+						for (int j = 0, next_pos = bb.pos + m.dir; j < bb.fire; ++j, next_pos += m.dir) {
+							if (!m.check.after(next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
 							int burst = burstMap[next_pos];
 							if (burstMap[next_pos] > limitTime) {
 								burstMap[next_pos] = limitTime;
@@ -420,11 +417,11 @@ public class State {
 				burstMemo[t.pos] |= bit;
 				while (qi < qs) {
 					Bomb bb = que[qi++];
-					for (int d : dirs) {
+					for (Move m : moves) {
 						int next_pos = bb.pos;
 						for (int j = 0; j < bb.fire; j++) {
-							next_pos += d;
-							if (!isin(d, next_pos) || (blockMemo[next_pos] & bit) != 0) break;
+							next_pos += m.dir;
+							if (!m.check.after(next_pos) || (blockMemo[next_pos] & bit) != 0) break;
 							burstMemo[next_pos] |= bit;
 							if (map[next_pos].isBomb() && !used[next_pos]) {
 								used[next_pos] = true;
