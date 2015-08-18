@@ -49,7 +49,7 @@ public class State {
 	private Cell map[] = null;
 	private Character characters[] = new Character[Parameter.CHARACTER_NUM];
 	private int burstMap[] = null;
-	Bomb[] bombList = null; // sort制約
+	private Bomb[] bombList = null;
 
 	State(State s) {
 		Counter.add("State copy");
@@ -127,7 +127,6 @@ public class State {
 				map[pos] = Cell.BOMB;
 			}
 		}
-		Arrays.sort(bombList);
 
 		int item_num = sc.nextInt();
 		for (int i = 0; i < item_num; ++i) {
@@ -160,7 +159,42 @@ public class State {
 				}
 			}
 		}
-		// print();
+
+		{
+			Arrays.sort(bombList);
+			burstMap = new int[Parameter.XY];
+			Arrays.fill(burstMap, BURST_MAP_INIT);
+			boolean used[] = new boolean[Parameter.XY];
+			Bomb que[] = new Bomb[bombList.length];
+
+			for (Bomb t : bombList) {
+				if (used[t.pos]) continue;
+				que[0] = t;
+				int qi = 0, qs = 1, limitTime = t.limitTime;
+				used[t.pos] = true;
+				while (qi < qs) {
+					Bomb bb = que[qi++];
+					burstMap[bb.pos] = Math.min(burstMap[bb.pos], limitTime);
+					for (Move m : moves) {
+						int next_pos = bb.pos;
+						for (int j = 0; j < bb.fire; ++j) {
+							next_pos += m.dir;
+							if (!m.check.after(next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
+							burstMap[next_pos] = Math.min(burstMap[next_pos], limitTime);
+							if (map[next_pos] == Cell.SOFT_BLOCK) break;
+							else if (map[next_pos].isBomb() && !used[next_pos]) {
+								used[next_pos] = true;
+								Bomb b = getBomb(next_pos);
+								que[qs++] = b;
+								if (b.fire + j + 1 >= bb.fire) break;
+							}
+						}
+					}
+				}
+			}
+			for (Bomb b : bombList)
+				if (b.limitTime > burstMap[b.pos]) b.limitTime = burstMap[b.pos];
+		}
 	}
 
 	final boolean anyDead() {
@@ -188,7 +222,7 @@ public class State {
 		boolean anyBomb = false;
 		for (int i = 0; i < bombList.length; ++i) {
 			Bomb b = bombList[i];
-			if (burstMap[b.pos] == 0) {
+			if (b.limitTime == 0) {
 				anyBomb = true;
 				if ((b.id & (1 << 0)) != 0) --characters[0].useBomb;
 				if ((b.id & (1 << 1)) != 0) --characters[1].useBomb;
@@ -204,11 +238,10 @@ public class State {
 		if (anyBomb) {
 			for (int p = 0; p < Parameter.XY; ++p)
 				if (map[p] == Cell.SOFT_BLOCK && burstMap[p] == 0) map[p] = Cell.BLANK;
-			burstMap = null;
+			calcBurstMap();
 		} else {
-			for (int p = 0; p < Parameter.XY; ++p) {
+			for (int p = 0; p < Parameter.XY; ++p)
 				if (burstMap[p] != BURST_MAP_INIT) --burstMap[p];
-			}
 		}
 
 		turn++;
@@ -237,34 +270,16 @@ public class State {
 
 	final int[] calcBurstMap() {
 		Counter.add("calcBurstMap");
-		if (burstMap != null) return burstMap;
-		burstMap = new int[Parameter.XY];
 		Arrays.fill(burstMap, BURST_MAP_INIT);
-		boolean used[] = new boolean[Parameter.XY];
-		Bomb que[] = new Bomb[bombList.length];
-
-		for (Bomb t : bombList) {
-			if (used[t.pos]) continue;
-			que[0] = t;
-			int qi = 0, qs = 1, limitTime = t.limitTime;
-			used[t.pos] = true;
-			while (qi < qs) {
-				Bomb bb = que[qi++];
-				burstMap[bb.pos] = Math.min(burstMap[bb.pos], limitTime);
-				for (Move m : moves) {
-					int next_pos = bb.pos;
-					for (int j = 0; j < bb.fire; ++j) {
-						next_pos += m.dir;
-						if (!m.check.after(next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
-						burstMap[next_pos] = Math.min(burstMap[next_pos], limitTime);
-						if (map[next_pos] == Cell.SOFT_BLOCK) break;
-						else if (map[next_pos].isBomb() && !used[next_pos]) {
-							used[next_pos] = true;
-							Bomb b = getBomb(next_pos);
-							que[qs++] = b;
-							if (b.fire + j + 1 >= bb.fire) break;
-						}
-					}
+		for (Bomb b : bombList) {
+			int limitTime = burstMap[b.pos] = b.limitTime;
+			for (Move m : moves) {
+				int next_pos = b.pos;
+				for (int j = 0; j < b.fire; ++j) {
+					next_pos += m.dir;
+					if (!m.check.after(next_pos) || map[next_pos] == Cell.HARD_BLOCK) break;
+					burstMap[next_pos] = Math.min(burstMap[next_pos], limitTime);
+					if (map[next_pos] == Cell.SOFT_BLOCK) break;
 				}
 			}
 		}
@@ -351,8 +366,8 @@ public class State {
 				que[0] = put;
 				boolean used[] = new boolean[Parameter.XY];
 				used[pos] = true;
-				int qi = 0, qs = 1, limitTime = Math.min(put.limitTime, burstMap[pos]);
-				burstMap[pos] = limitTime;
+				int qi = 0, qs = 1, limitTime = put.limitTime < burstMap[pos] ? (burstMap[pos] = put.limitTime)
+						: (put.limitTime = burstMap[pos]);
 				while (qi < qs) {
 					Bomb bb = que[qi++];
 					for (Move m : moves) {
@@ -365,6 +380,7 @@ public class State {
 								if (map[next_pos].isBomb() && !used[next_pos]) {
 									used[next_pos] = true;
 									Bomb b = getBomb(next_pos);
+									b.limitTime = limitTime;
 									que[qs++] = b;
 									if (b.fire + j + 1 >= bb.fire) break;
 								}
@@ -407,29 +423,15 @@ public class State {
 					blockMemo[pos] = (1 << burstMap[pos]) - 1;
 				}
 			}
-			boolean used[] = new boolean[Parameter.XY];
-			Bomb que[] = new Bomb[bombList.length];
-			for (Bomb t : bombList) {
-				if (used[t.pos]) continue;
-				int qi = 0, qs = 1, bit = 1 << t.limitTime;
-				que[0] = t;
-				used[t.pos] = true;
-				burstMemo[t.pos] |= bit;
-				while (qi < qs) {
-					Bomb bb = que[qi++];
-					for (Move m : moves) {
-						int next_pos = bb.pos;
-						for (int j = 0; j < bb.fire; j++) {
-							next_pos += m.dir;
-							if (!m.check.after(next_pos) || (blockMemo[next_pos] & bit) != 0) break;
-							burstMemo[next_pos] |= bit;
-							if (map[next_pos].isBomb() && !used[next_pos]) {
-								used[next_pos] = true;
-								Bomb b = getBomb(next_pos);
-								que[qs++] = b;
-								if (b.fire + j + 1 >= bb.fire) break;
-							}
-						}
+			for (Bomb b : bombList) {
+				int bit = 1 << b.limitTime;
+				burstMemo[b.pos] |= bit;
+				for (Move m : moves) {
+					int pos = b.pos;
+					for (int j = 0; j < b.fire; j++) {
+						pos += m.dir;
+						if (!m.check.after(pos) || (blockMemo[pos] & bit) != 0) break;
+						burstMemo[pos] |= bit;
 					}
 				}
 			}
@@ -440,11 +442,10 @@ public class State {
 				int liveDFS(int pos, int depth) {
 					if (memo[depth][pos] != 0) return memo[depth][pos];
 					int bit = 1 << depth, mask = ~(bit - 1), res = depth;
-					if ((burstMemo[pos] & mask) == 0) return memo[depth][pos] = endDepth;
-					if ((burstMemo[pos] & bit) == 0 && (res = Math.max(res, liveDFS(pos, depth + 1))) == endDepth) return memo[depth][pos] = res;
+					if ((burstMemo[pos] & mask) == 0 || (burstMemo[pos] & bit) == 0 && (res = liveDFS(pos, depth + 1)) == endDepth) return memo[depth][pos] = endDepth;
 					for (int next_pos : NEXT[pos]) {
 						if ((burstMemo[next_pos] & bit) == 0 && (blockMemo[next_pos] & bit) == 0
-								&& (res = Math.max(res, liveDFS(next_pos, depth + 1))) == endDepth) return memo[depth][pos] = res;
+								&& (res = Math.max(res, liveDFS(next_pos, depth + 1))) == endDepth) return memo[depth][pos] = endDepth;
 					}
 					return memo[depth][pos] = res;
 				}
@@ -480,15 +481,15 @@ public class State {
 
 	public final long getHash() {
 		Counter.add("getHash");
-		int burstMap[] = calcBurstMap();
 		long res = 0;
 		for (int pos = 0; pos < Parameter.XY; ++pos) {
 			res ^= Hash.hashMap[map[pos].ordinal() * Parameter.XY + pos];
 			res ^= Hash.hashBomb[burstMap[pos] * Parameter.XY + pos];
 		}
-		for (int id = 0; id < Parameter.CHARACTER_NUM; ++id) {
-			res ^= Hash.hashPlayer[id * Parameter.XY + characters[id].pos];
-		}
+		res ^= Hash.hashPlayer[0 * Parameter.XY + characters[0].pos];
+		res ^= Hash.hashPlayer[1 * Parameter.XY + characters[1].pos];
+		res ^= Hash.hashPlayer[2 * Parameter.XY + characters[2].pos];
+		res ^= Hash.hashPlayer[3 * Parameter.XY + characters[3].pos];
 		return res;
 	}
 

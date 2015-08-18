@@ -164,7 +164,6 @@ public class AI {
 				State tmp = new State(now);
 				tmp.operations(o[0], State.ID[Parameter.ENEMY_ID][0], enemyMap);
 				tmp.operations(o[1], State.ID[Parameter.ENEMY_ID][1], enemyMap);
-				Arrays.sort(tmp.bombList);
 				int value;
 				if (depth == 0 || tmp.anyDead()) {
 					Result res = tmp.getResult();
