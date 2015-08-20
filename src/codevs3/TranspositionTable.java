@@ -3,9 +3,15 @@ package codevs3;
 import java.util.Arrays;
 
 public class TranspositionTable {
-	private static final int SIZE = 1 << 25;
+	/*
+	 * Javaでないと、この糞設計は成立しないな・・・
+	 * out of rangeするとException吐くことを前提になっている
+	 * C++でやったら死ぬ未来しか見えない。(assert入れてデバッグとかは可能ではありそうだけど・・・)
+	 */
+
+	private static final int SIZE = 1 << 26;
 	private static final int MASK = SIZE - 1;
-	private static final int BUFFER_SIZE = 1 << 19;
+	private static final int BUFFER_SIZE = 1 << 20;
 
 	private Next[] buffer = new Next[BUFFER_SIZE];
 	private Next[] table = new Next[SIZE];

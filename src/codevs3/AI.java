@@ -12,8 +12,6 @@ public class AI {
 		try (Scanner sc = new Scanner(System.in)) {
 			AI ai = new AI();
 			System.out.println("hoshi524");
-			// next.AI test = new next.AI();
-			// long s0 = 0, s1 = 0;
 			while (true) {
 				StringBuilder sb = new StringBuilder();
 				while (true) {
@@ -21,16 +19,8 @@ public class AI {
 					sb.append(tmp).append("\n");
 					if (tmp.equals("END")) break;
 				}
-				String input = sb.toString(), output;
-				// long t0 = System.nanoTime();
-				output = ai.think(input);
-				//				long t1 = System.nanoTime();
-				//				output = test.think(input);
-				//				long t2 = System.nanoTime();
-				//				s0 += t1 - t0;
-				//				s1 += t2 - t1;
-				//				System.err.println(s0 + " " + s1);
-				System.out.print(output);
+				String input = sb.toString();
+				System.out.print(ai.think(input));
 			}
 		}
 	}
@@ -77,6 +67,7 @@ public class AI {
 	// DebugDFS debug = new DebugDFS();
 
 	public String think(String input) {
+		long start = System.currentTimeMillis();
 		table.clear();
 		State state = new State(input);
 		Next next = MTDF(state);
@@ -89,7 +80,7 @@ public class AI {
 				debug(test.value, test.operations);
 			}
 		}
-		debug(state.turn, next.value);
+		debug(state.turn, next.value, System.currentTimeMillis() - start);
 
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < Parameter.PLAYER; ++i) {
