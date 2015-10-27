@@ -26,26 +26,31 @@ public class AI {
 	}
 
 	static final int MAX_VALUE = Integer.MAX_VALUE >> 10;
+
 	static final int MIN_VALUE = Integer.MIN_VALUE >> 10;
+
 	static final int INIT_MAX_DEPTH = 5;
+
 	static int MAX_DEPTH = INIT_MAX_DEPTH; // 奇数制約
+
 	static int AiutiValue;
 
 	// 何故か順番に依存してて変更できない
-	final static Operation operations[] = {//
-	new Operation(Move.NONE, false, 5), //			0
-			new Operation(Move.DOWN, false, 5), //	1
-			new Operation(Move.LEFT, false, 5), //	2
-			new Operation(Move.RIGHT, false, 5), //	3
-			new Operation(Move.UP, false, 5), //	4
-			new Operation(Move.DOWN, true, 5), //	5
-			new Operation(Move.LEFT, true, 5), //	6
-			new Operation(Move.RIGHT, true, 5), //	7
-			new Operation(Move.UP, true, 5), //		8
-			new Operation(Move.NONE, true, 5), //	9
+	final static Operation operations[] = { //
+		new Operation(Move.NONE, false, 5), //			0
+		new Operation(Move.DOWN, false, 5), //	1
+		new Operation(Move.LEFT, false, 5), //	2
+		new Operation(Move.RIGHT, false, 5), //	3
+		new Operation(Move.UP, false, 5), //	4
+		new Operation(Move.DOWN, true, 5), //	5
+		new Operation(Move.LEFT, true, 5), //	6
+		new Operation(Move.RIGHT, true, 5), //	7
+		new Operation(Move.UP, true, 5), //		8
+		new Operation(Move.NONE, true, 5), //	9
 	};
 
 	static final Operation[][] operationList;
+
 	static {
 		class innerfunc {
 			void operation_dfs(int n, Operation[] now, ArrayList<Operation[]> res) {
@@ -123,8 +128,8 @@ public class AI {
 			best.value = MIN_VALUE;
 			int enemyMap[] = now.getEnemyMap(Parameter.MY_ID);
 			for (int i = 0; i < operations.length; ++i) {
-				bad[0][i] = new State(now).operations(operations[i], State.ID[Parameter.MY_ID][0], enemyMap);
-				bad[1][i] = new State(now).operations(operations[i], State.ID[Parameter.MY_ID][1], enemyMap);
+				bad[0][i] = now.operations_check(operations[i], State.ID[Parameter.MY_ID][0], enemyMap);
+				bad[1][i] = now.operations_check(operations[i], State.ID[Parameter.MY_ID][1], enemyMap);
 			}
 			for (int i = 0; i < operationList.length; ++i) {
 				int a = i / operations.length, b = i % operations.length;
@@ -145,8 +150,8 @@ public class AI {
 			best.value = MAX_VALUE;
 			int enemyMap[] = now.getEnemyMap(Parameter.ENEMY_ID);
 			for (int i = 0; i < operations.length; ++i) {
-				bad[0][i] = new State(now).operations(operations[i], State.ID[Parameter.ENEMY_ID][0], enemyMap);
-				bad[1][i] = new State(now).operations(operations[i], State.ID[Parameter.ENEMY_ID][1], enemyMap);
+				bad[0][i] = now.operations_check(operations[i], State.ID[Parameter.ENEMY_ID][0], enemyMap);
+				bad[1][i] = now.operations_check(operations[i], State.ID[Parameter.ENEMY_ID][1], enemyMap);
 			}
 			for (int i = 0; i < operationList.length; ++i) {
 				int a = i / operations.length, b = i % operations.length;
@@ -155,20 +160,19 @@ public class AI {
 				State tmp = new State(now);
 				tmp.operations(o[0], State.ID[Parameter.ENEMY_ID][0], enemyMap);
 				tmp.operations(o[1], State.ID[Parameter.ENEMY_ID][1], enemyMap);
-				int value;
+				int value = 0;
 				if (depth == 0 || tmp.anyDead()) {
 					Result res = tmp.getResult();
 					if (res == Result.Continue) value = tmp.value();
 					else if (res == Result.Draw) value = tmp.value() + AiutiValue;
 					else if (res == Result.Win) value = tmp.win() + (MAX_VALUE >> 1);
-					else if (true || res == Result.Lose) value = tmp.lose() + (MIN_VALUE >> 1);
+					else if (res == Result.Lose) value = tmp.lose() + (MIN_VALUE >> 1);
 				} else {
 					tmp.step();
 					value = negamax(tmp, depth - 1, alpha, beta).value;
 				}
 				if (best.value > value) {
 					best.value = value;
-					best.operations = o;
 					if (alpha >= best.value) break;
 					beta = Math.min(beta, best.value);
 				}
