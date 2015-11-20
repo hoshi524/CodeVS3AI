@@ -333,19 +333,18 @@ public class State {
 
 	final int[] getEnemyMap(int player_id) {
 		Counter.add("getEnemyMap");
-		int enemyMap[] = new int[Parameter.XY], qi, qs, que[] = new int[Parameter.XY];
-		for (int id : ID[player_id == 0 ? 1 : 0]) {
+		int enemyMap[] = new int[Parameter.XY], size, que[] = new int[6 * 6 / 2];
+		for (int id : ID[(player_id + 1) & 1]) {
 			Character c = characters[id];
 			enemyMap[c.pos] = 6;
 			que[0] = c.pos;
-			qi = 0;
-			qs = 1;
-			while (qi < qs) {
-				int now_pos = que[qi++];
+			size = 1;
+			while (0 < size) {
+				int now_pos = que[--size];
 				for (int next_pos : NEXT[now_pos]) {
-					if (map[next_pos].canMove() && enemyMap[next_pos] + 1 < enemyMap[now_pos]) {
+					if (map[next_pos].canMove() && enemyMap[next_pos] == 0) {
 						enemyMap[next_pos] = enemyMap[now_pos] - 1;
-						if (enemyMap[next_pos] > 1) que[qs++] = next_pos;
+						if (enemyMap[next_pos] > 1) que[size++] = next_pos;
 					}
 				}
 			}
@@ -354,7 +353,7 @@ public class State {
 	}
 
 	final boolean operations_check(Operation o, int cid, int enemyMap[]) {
-		Counter.add("operations");
+		Counter.add("operations_check");
 		Character c = characters[cid];
 		int pos = c.pos;
 		{// 移動処理

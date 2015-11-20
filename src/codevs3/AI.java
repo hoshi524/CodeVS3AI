@@ -26,18 +26,14 @@ public class AI {
 	}
 
 	static final int MAX_VALUE = Integer.MAX_VALUE >> 10;
-
 	static final int MIN_VALUE = Integer.MIN_VALUE >> 10;
-
 	static final int INIT_MAX_DEPTH = 5;
-
 	static int MAX_DEPTH = INIT_MAX_DEPTH; // 奇数制約
-
 	static int AiutiValue;
 
 	// 何故か順番に依存してて変更できない
 	final static Operation operations[] = { //
-		new Operation(Move.NONE, false, 5), //			0
+		new Operation(Move.NONE, false, 5), //	0
 		new Operation(Move.DOWN, false, 5), //	1
 		new Operation(Move.LEFT, false, 5), //	2
 		new Operation(Move.RIGHT, false, 5), //	3
@@ -132,8 +128,7 @@ public class AI {
 				bad[1][i] = now.operations_check(operations[i], State.ID[Parameter.MY_ID][1], enemyMap);
 			}
 			for (int i = 0; i < operationList.length; ++i) {
-				int a = i / operations.length, b = i % operations.length;
-				if (bad[0][a] || bad[1][b]) continue;
+				if (bad[0][i / operations.length] || bad[1][i % operations.length]) continue;
 				Operation o[] = operationList[i];
 				State tmp = new State(now);
 				tmp.operations(o[0], State.ID[Parameter.MY_ID][0], enemyMap);
@@ -154,8 +149,7 @@ public class AI {
 				bad[1][i] = now.operations_check(operations[i], State.ID[Parameter.ENEMY_ID][1], enemyMap);
 			}
 			for (int i = 0; i < operationList.length; ++i) {
-				int a = i / operations.length, b = i % operations.length;
-				if (bad[0][a] || bad[1][b]) continue;
+				if (bad[0][i / operations.length] || bad[1][i % operations.length]) continue;
 				Operation o[] = operationList[i];
 				State tmp = new State(now);
 				tmp.operations(o[0], State.ID[Parameter.ENEMY_ID][0], enemyMap);
@@ -165,8 +159,11 @@ public class AI {
 					Result res = tmp.getResult();
 					if (res == Result.Continue) value = tmp.value();
 					else if (res == Result.Draw) value = tmp.value() + AiutiValue;
-					else if (res == Result.Win) value = tmp.win() + (MAX_VALUE >> 1);
-					else if (res == Result.Lose) value = tmp.lose() + (MIN_VALUE >> 1);
+					else if (res == Result.Win) {
+						value = tmp.win() + (MAX_VALUE >> 1);
+					} else if (res == Result.Lose) {
+						value = tmp.lose() + (MIN_VALUE >> 1);
+					}
 				} else {
 					tmp.step();
 					value = negamax(tmp, depth - 1, alpha, beta).value;
