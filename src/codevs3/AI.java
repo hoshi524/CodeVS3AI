@@ -84,8 +84,11 @@ public class AI {
 		debug(state.turn, next.value, System.currentTimeMillis() - start);
 
 		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < Parameter.PLAYER; ++i) {
-			sb.append(next.operations[i].toString()).append("\n");
+		{
+			Operation[] o = next.operations == null ? operationList[0] : next.operations;
+			for (int i = 0; i < Parameter.PLAYER; ++i) {
+				sb.append(o[i].toString()).append("\n");
+			}
 		}
 		Timer.print();
 		// debug.print();
