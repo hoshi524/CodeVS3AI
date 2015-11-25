@@ -126,16 +126,18 @@ public class AI {
 		if ((depth & 1) == 1) {
 			best.value = MIN_VALUE;
 			int enemyMap[] = now.getEnemyMap(Parameter.MY_ID);
+			int id0 = State.ID[Parameter.MY_ID][0];
+			int id1 = State.ID[Parameter.MY_ID][1];
 			for (int i = 0; i < operations.length; ++i) {
-				bad[0][i] = now.operations_check(operations[i], State.ID[Parameter.MY_ID][0], enemyMap);
-				bad[1][i] = now.operations_check(operations[i], State.ID[Parameter.MY_ID][1], enemyMap);
+				bad[0][i] = now.operations_check(operations[i], id0, enemyMap);
+				bad[1][i] = now.operations_check(operations[i], id1, enemyMap);
 			}
 			for (int i = 0; i < operationList.length; ++i) {
 				if (bad[0][i / operations.length] || bad[1][i % operations.length]) continue;
 				Operation o[] = operationList[i];
 				State tmp = new State(now);
-				tmp.operations(o[0], State.ID[Parameter.MY_ID][0], enemyMap);
-				tmp.operations(o[1], State.ID[Parameter.MY_ID][1], enemyMap);
+				tmp.operations(o[0], id0);
+				tmp.operations(o[1], id1);
 				int value = negamax(tmp, depth - 1, alpha, beta).value;
 				if (best.value < value) {
 					best.value = value;
@@ -147,16 +149,18 @@ public class AI {
 		} else {
 			best.value = MAX_VALUE;
 			int enemyMap[] = now.getEnemyMap(Parameter.ENEMY_ID);
+			int id0 = State.ID[Parameter.ENEMY_ID][0];
+			int id1 = State.ID[Parameter.ENEMY_ID][1];
 			for (int i = 0; i < operations.length; ++i) {
-				bad[0][i] = now.operations_check(operations[i], State.ID[Parameter.ENEMY_ID][0], enemyMap);
-				bad[1][i] = now.operations_check(operations[i], State.ID[Parameter.ENEMY_ID][1], enemyMap);
+				bad[0][i] = now.operations_check(operations[i], id0, enemyMap);
+				bad[1][i] = now.operations_check(operations[i], id1, enemyMap);
 			}
 			for (int i = 0; i < operationList.length; ++i) {
 				if (bad[0][i / operations.length] || bad[1][i % operations.length]) continue;
 				Operation o[] = operationList[i];
 				State tmp = new State(now);
-				tmp.operations(o[0], State.ID[Parameter.ENEMY_ID][0], enemyMap);
-				tmp.operations(o[1], State.ID[Parameter.ENEMY_ID][1], enemyMap);
+				tmp.operations(o[0], id0);
+				tmp.operations(o[1], id1);
 				int value = 0;
 				if (depth == 0 || tmp.anyDead()) {
 					Result res = tmp.getResult();
