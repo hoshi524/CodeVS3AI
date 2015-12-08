@@ -22,11 +22,8 @@ public class State {
 	}
 
 	final static int BURST_MAP_INIT = 1 << 4;
-
 	final static int[][] ID = { { 0, 1 }, { 2, 3 } };
-
 	private final static Move[] moves = { Move.DOWN, Move.LEFT, Move.RIGHT, Move.UP };
-
 	private final static int[][] NEXT = new int[Parameter.XY][];
 
 	private final static boolean isHardBlock(int p) {
@@ -311,7 +308,8 @@ public class State {
 	final int value() {
 		Character a1 = characters[ID[Parameter.MY_ID][0]], a2 = characters[ID[Parameter.MY_ID][1]];
 		Character e1 = characters[ID[Parameter.ENEMY_ID][0]], e2 = characters[ID[Parameter.ENEMY_ID][1]];
-		return length[a1.pos][a2.pos] - length[e1.pos][e2.pos] - (a1.lastBomb + a2.lastBomb) + (a1.bomb + a1.fire + a2.bomb + a2.fire);
+		return length[a1.pos][a2.pos] - length[e1.pos][e2.pos] - (a1.lastBomb + a2.lastBomb)
+				+ (a1.bomb + a1.fire + a2.bomb + a2.fire);
 	}
 
 	final int lose() {
@@ -427,7 +425,8 @@ public class State {
 				boolean used[] = new boolean[Parameter.XY];
 				used[pos] = true;
 				int qs = 1;
-				int limitTime = put.limitTime < burstMap[pos] ? (burstMap[pos] = put.limitTime) : (put.limitTime = burstMap[pos]);
+				int limitTime = put.limitTime < burstMap[pos] ? (burstMap[pos] = put.limitTime)
+						: (put.limitTime = burstMap[pos]);
 				while (0 < qs) {
 					Bomb bb = que[--qs];
 					for (Move m : moves) {
@@ -497,12 +496,11 @@ public class State {
 				int liveDFS(int pos, int depth) {
 					if (memo[depth][pos] != 0) return memo[depth][pos];
 					int bit = 1 << depth, mask = ~(bit - 1), res = depth;
-					if ((burstMemo[pos] & mask) == 0 || (burstMemo[pos] & bit) == 0 && (res = liveDFS(pos, depth + 1)) == endDepth)
-						return memo[depth][pos] = endDepth;
+					if ((burstMemo[pos] & mask) == 0 || (burstMemo[pos] & bit) == 0
+							&& (res = liveDFS(pos, depth + 1)) == endDepth) return memo[depth][pos] = endDepth;
 					for (int next_pos : NEXT[pos]) {
 						if ((burstMemo[next_pos] & bit) == 0 && (blockMemo[next_pos] & bit) == 0
-								&& (res = Math.max(res, liveDFS(next_pos, depth + 1))) == endDepth)
-							return memo[depth][pos] = endDepth;
+								&& (res = Math.max(res, liveDFS(next_pos, depth + 1))) == endDepth) return memo[depth][pos] = endDepth;
 					}
 					return memo[depth][pos] = res;
 				}

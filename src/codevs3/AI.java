@@ -27,22 +27,22 @@ public class AI {
 
 	static final int MAX_VALUE = Integer.MAX_VALUE >> 10;
 	static final int MIN_VALUE = Integer.MIN_VALUE >> 10;
-	static final int INIT_MAX_DEPTH = 5;
+	static final int INIT_MAX_DEPTH = 7;
 	static int MAX_DEPTH = INIT_MAX_DEPTH; // 奇数制約
 	static int AiutiValue;
 
 	// 何故か順番に依存してて変更できない
 	final static Operation operations[] = { //
-		new Operation(Move.NONE, false, 5), //	0
-		new Operation(Move.DOWN, false, 5), //	1
-		new Operation(Move.LEFT, false, 5), //	2
-		new Operation(Move.RIGHT, false, 5), //	3
-		new Operation(Move.UP, false, 5), //	4
-		new Operation(Move.DOWN, true, 5), //	5
-		new Operation(Move.LEFT, true, 5), //	6
-		new Operation(Move.RIGHT, true, 5), //	7
-		new Operation(Move.UP, true, 5), //		8
-		new Operation(Move.NONE, true, 5), //	9
+			new Operation(Move.NONE, false, 5), //	0
+			new Operation(Move.DOWN, false, 5), //	1
+			new Operation(Move.LEFT, false, 5), //	2
+			new Operation(Move.RIGHT, false, 5), //	3
+			new Operation(Move.UP, false, 5), //	4
+			new Operation(Move.DOWN, true, 5), //	5
+			new Operation(Move.LEFT, true, 5), //	6
+			new Operation(Move.RIGHT, true, 5), //	7
+			new Operation(Move.UP, true, 5), //		8
+			new Operation(Move.NONE, true, 5), //	9
 	};
 
 	static final Operation[][] operationList;
@@ -142,8 +142,8 @@ public class AI {
 				if (best.value < value) {
 					best.value = value;
 					best.operations = o;
-					if (best.value >= beta) break;
 					alpha = Math.max(alpha, best.value);
+					if (best.value >= beta) break;
 				}
 			}
 		} else {
@@ -177,8 +177,8 @@ public class AI {
 				}
 				if (best.value > value) {
 					best.value = value;
-					if (alpha >= best.value) break;
 					beta = Math.min(beta, best.value);
+					if (alpha >= best.value) break;
 				}
 			}
 		}
