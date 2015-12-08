@@ -6,10 +6,10 @@ import java.util.Scanner;
 public class State {
 
 	enum Cell {
-		NUMBER, POWER, BLANK, BOMB, PUT_BOMB, SOFT_BLOCK, HARD_BLOCK;
+		NUMBER, POWER, BLANK, BOMB, SOFT_BLOCK, HARD_BLOCK;
 
 		boolean canMove() {
-			return this == BLANK || this == NUMBER || this == POWER || this == PUT_BOMB;
+			return this == BLANK || this == NUMBER || this == POWER;
 		}
 
 		boolean cantMove() {
@@ -17,7 +17,7 @@ public class State {
 		}
 
 		boolean isBomb() {
-			return this == BOMB || this == PUT_BOMB;
+			return this == BOMB;
 		}
 	}
 
@@ -77,8 +77,6 @@ public class State {
 			int time = sc.nextInt(); // time
 			// 時間がある時は相打ちを狙わない、時間がない時は積極的に相打ちを狙う
 			AI.AiutiValue = time > 200000 ? AI.MIN_VALUE >> 2 : AI.MAX_VALUE >> 2;
-			// どうしても時間が切れるので時間が無くなったらdepthを減らす
-			AI.MAX_DEPTH = time > 100000 ? AI.INIT_MAX_DEPTH : AI.INIT_MAX_DEPTH - 2; // 奇数制約
 		}
 		turn = sc.nextInt(); // turn
 		sc.nextInt(); // max_turn
@@ -236,7 +234,6 @@ public class State {
 				map[b.pos] = Cell.BLANK;
 			} else {
 				--b.limitTime;
-				map[b.pos] = Cell.BOMB;
 			}
 		}
 		if (anyBomb) {
@@ -400,12 +397,7 @@ public class State {
 	final void operations(Operation o, int cid) {
 		Counter.add("operations");
 		Character c = characters[cid];
-		{// 移動処理
-			if (o.move != Move.NONE) {
-				c.pos += o.move.dir;
-				if (!o.move.check.after(c.pos) || map[c.pos].cantMove()) return;
-			}
-		}
+		if (o.move != Move.NONE) c.pos += o.move.dir;
 
 		// 爆弾処理
 		if (o.magic) {
@@ -417,7 +409,7 @@ public class State {
 			} else {
 				put = new Bomb(cid, pos, o.burstTime, fire);
 				bombList = add(bombList, put);
-				map[pos] = Cell.PUT_BOMB;
+				map[pos] = Cell.BOMB;
 			}
 			{// 爆弾の有効性チェック
 				Bomb que[] = new Bomb[bombList.length];
